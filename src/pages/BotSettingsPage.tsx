@@ -88,7 +88,7 @@ export default function BotSettingsPage() {
   };
 
   const updateBot = async (field: string, value: any) => {
-    await supabase.from("bots").update({ [field]: value }).eq("id", botId!);
+    await supabase.from("bots").update({ [field]: value } as any).eq("id", botId!);
     setBot((prev: any) => ({ ...prev, [field]: value }));
   };
 
