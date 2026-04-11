@@ -62,15 +62,25 @@ export default function ChatsPage() {
   const [bots, setBots] = useState<BotItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const loadConversationsRef = useRef(loadConversations);
+  loadConversationsRef.current = loadConversations;
+  const loadBotsRef = useRef(loadBots);
+  loadBotsRef.current = loadBots;
+
   useEffect(() => {
     if (!user) return;
-    loadAll();
-  }, [user]);
-
-  const loadAll = useCallback(async () => {
     setLoading(true);
-    await Promise.all([loadConversations(), loadBots()]);
-    setLoading(false);
+    Promise.all([loadConversationsRef.current(), loadBotsRef.current()]).then(() => setLoading(false));
+
+    // Subscribe to new messages for real-time updates
+    const channel = supabase
+      .channel("chats-realtime")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => {
+        loadConversationsRef.current();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [user]);
 
   const loadConversations = async () => {
