@@ -35,23 +35,34 @@ export default function NewChatPage() {
   };
 
   const startChat = async (otherUserId: string) => {
-    // Check if direct conversation already exists
+    // Check if direct conversation already exists using a more efficient approach
     const { data: myConvs } = await supabase
       .from("conversation_members")
       .select("conversation_id")
       .eq("user_id", user!.id);
 
-    if (myConvs) {
-      for (const mc of myConvs) {
-        const { data: otherMember } = await supabase
-          .from("conversation_members")
-          .select("user_id")
-          .eq("conversation_id", mc.conversation_id)
-          .eq("user_id", otherUserId)
+    if (myConvs?.length) {
+      const convIds = myConvs.map((m) => m.conversation_id);
+      
+      // Batch check: find the other user's memberships in our conversations
+      const { data: otherMemberships } = await supabase
+        .from("conversation_members")
+        .select("conversation_id")
+        .eq("user_id", otherUserId)
+        .in("conversation_id", convIds);
+
+      if (otherMemberships?.length) {
+        // Verify it's a direct conversation
+        const { data: directConv } = await supabase
+          .from("conversations")
+          .select("id")
+          .eq("type", "direct")
+          .in("id", otherMemberships.map((m) => m.conversation_id))
+          .limit(1)
           .single();
 
-        if (otherMember) {
-          navigate(`/chat/${mc.conversation_id}`);
+        if (directConv) {
+          navigate(`/chat/${directConv.id}`);
           return;
         }
       }

@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Edit, Plus, Users, Megaphone, Bot, MessageCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -64,13 +64,21 @@ export default function ChatsPage() {
 
   useEffect(() => {
     if (!user) return;
-    loadAll();
-  }, [user]);
-
-  const loadAll = useCallback(async () => {
     setLoading(true);
-    await Promise.all([loadConversations(), loadBots()]);
-    setLoading(false);
+    Promise.all([loadConversations(), loadBots()]).then(() => setLoading(false));
+
+    // Subscribe to new messages for real-time chat list updates
+    const existing = supabase.getChannels().find(c => c.topic === 'realtime:chats-realtime');
+    if (existing) supabase.removeChannel(existing);
+
+    const channel = supabase
+      .channel("chats-realtime")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => {
+        loadConversations();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [user]);
 
   const loadConversations = async () => {

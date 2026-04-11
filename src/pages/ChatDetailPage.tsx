@@ -56,6 +56,12 @@ export default function ChatDetailPage() {
     loadMessages();
     loadPartnerInfo();
 
+    // Clean up existing channels first
+    const existingMsg = supabase.getChannels().find(c => c.topic === `realtime:messages:${chatId}`);
+    if (existingMsg) supabase.removeChannel(existingMsg);
+    const existingTyping = supabase.getChannels().find(c => c.topic === `realtime:typing:${chatId}`);
+    if (existingTyping) supabase.removeChannel(existingTyping);
+
     const channel = supabase
       .channel(`messages:${chatId}`)
       .on(
