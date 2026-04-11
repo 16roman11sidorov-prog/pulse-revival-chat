@@ -1,6 +1,11 @@
+import { supabase } from "@/integrations/supabase/client";
+
 type Msg = { role: "user" | "assistant"; content: string };
 
-const BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
+const SUPABASE_URL = "https://yoywidkntofjvtoumebe.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlveXdpZGtudG9manZ0b3VtZWJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NjQ4MDUsImV4cCI6MjA5MTA0MDgwNX0.AM5LsZMvMt-jEXgswC1OPG0Eoejzigv19ssIte2Gda0";
+
+const BASE_URL = `${SUPABASE_URL}/functions/v1`;
 
 export async function streamChat({
   functionName,
@@ -15,11 +20,16 @@ export async function streamChat({
   onDone: () => void;
   onError?: (error: string) => void;
 }) {
+  // Get current session token for auth
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token || SUPABASE_ANON_KEY;
+
   const resp = await fetch(`${BASE_URL}/${functionName}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      Authorization: `Bearer ${token}`,
+      apikey: SUPABASE_ANON_KEY,
     },
     body: JSON.stringify({ messages }),
   });
