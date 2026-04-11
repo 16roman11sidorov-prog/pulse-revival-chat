@@ -27,6 +27,12 @@ export function useNotifications() {
   useEffect(() => {
     if (!user) return;
 
+    // Remove any existing channel with the same name first (React strict mode workaround)
+    const existing = supabase.getChannels().find(c => c.topic === 'realtime:push-notifications');
+    if (existing) {
+      supabase.removeChannel(existing);
+    }
+
     const channel = supabase
       .channel("push-notifications")
       .on(
