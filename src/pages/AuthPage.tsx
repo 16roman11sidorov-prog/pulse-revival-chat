@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, Lock, User, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,7 @@ export default function AuthPage() {
 
   // Redirect if already logged in
   if (user) {
-    navigate("/chats", { replace: true });
-    return null;
+    return <Navigate to="/chats" replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
