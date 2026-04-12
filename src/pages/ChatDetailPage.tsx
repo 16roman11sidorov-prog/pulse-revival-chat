@@ -158,14 +158,15 @@ export default function ChatDetailPage() {
       .eq("conversation_id", chatId!)
       .neq("user_id", user!.id);
     if (members?.[0]) {
+      setPartnerId(members[0].user_id);
       const { data: profile } = await supabase
         .from("profiles")
         .select("*")
         .eq("user_id", members[0].user_id)
         .single();
       if (profile) {
-        setPartnerName(profile.display_name || profile.username || "Пользователь");
-        setPartnerStatus(profile.status);
+        setPartnerName((profile as any).display_name || (profile as any).username || "Пользователь");
+        setPartnerStatus((profile as any).status);
       }
     }
   };
