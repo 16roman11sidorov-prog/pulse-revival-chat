@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Paperclip, Smile, Mic, Send, Phone, Video, MoreVertical, X, FileText, Loader2, Square } from "lucide-react";
+import { ArrowLeft, Paperclip, Smile, Mic, Send, Phone, Video, MoreVertical, X, FileText, Loader2, Square, Gift } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +8,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import VoicePlayer from "@/components/VoicePlayer";
+import { GiftSendDialog } from "@/components/easter/GiftSendDialog";
+import { isEasterEventActive } from "@/lib/easter-config";
 
 interface MessageItem {
   id: string;
@@ -48,6 +50,8 @@ export default function ChatDetailPage() {
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const [partnerId, setPartnerId] = useState<string | null>(null);
+  const [giftDialogOpen, setGiftDialogOpen] = useState(false);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -154,14 +158,15 @@ export default function ChatDetailPage() {
       .eq("conversation_id", chatId!)
       .neq("user_id", user!.id);
     if (members?.[0]) {
+      setPartnerId(members[0].user_id);
       const { data: profile } = await supabase
         .from("profiles")
         .select("*")
         .eq("user_id", members[0].user_id)
         .single();
       if (profile) {
-        setPartnerName(profile.display_name || profile.username || "Пользователь");
-        setPartnerStatus(profile.status);
+        setPartnerName((profile as any).display_name || (profile as any).username || "Пользователь");
+        setPartnerStatus((profile as any).status);
       }
     }
   };
@@ -374,6 +379,11 @@ export default function ChatDetailPage() {
           )}
         </div>
         <div className="flex gap-1">
+          {convType === "direct" && isEasterEventActive() && partnerId && (
+            <button onClick={() => setGiftDialogOpen(true)} className="rounded-full p-2 hover:bg-muted">
+              <Gift className="h-4 w-4 text-primary" />
+            </button>
+          )}
           {convType === "direct" && (
             <>
               <button className="rounded-full p-2 hover:bg-muted"><Phone className="h-4 w-4 text-muted-foreground" /></button>
@@ -381,6 +391,14 @@ export default function ChatDetailPage() {
             </>
           )}
           <button className="rounded-full p-2 hover:bg-muted"><MoreVertical className="h-4 w-4 text-muted-foreground" /></button>
+          {partnerId && (
+            <GiftSendDialog
+              open={giftDialogOpen}
+              onOpenChange={setGiftDialogOpen}
+              receiverId={partnerId}
+              receiverName={partnerName}
+            />
+          )}
         </div>
       </div>
 

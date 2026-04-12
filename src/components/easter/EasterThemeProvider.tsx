@@ -1,18 +1,19 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { isEasterEventActive, getEventTimeRemaining } from "@/lib/easter-config";
-import { supabase } from "@/integrations/supabase/client";
+import { isEasterEventActive, getEventTimeRemaining, grantRandomBanner } from "@/lib/easter-config";
 import { useAuth } from "@/components/AuthProvider";
 
 interface EasterContextType {
   isActive: boolean;
   timeRemaining: { hours: number; minutes: number; seconds: number } | null;
   bannerGranted: boolean;
+  grantedBannerId: string | null;
 }
 
 const EasterContext = createContext<EasterContextType>({
   isActive: false,
   timeRemaining: null,
   bannerGranted: false,
+  grantedBannerId: null,
 });
 
 export function useEaster() {
@@ -23,9 +24,9 @@ export function EasterThemeProvider({ children }: { children: React.ReactNode })
   const [isActive, setIsActive] = useState(isEasterEventActive());
   const [timeRemaining, setTimeRemaining] = useState(getEventTimeRemaining());
   const [bannerGranted, setBannerGranted] = useState(false);
+  const [grantedBannerId, setGrantedBannerId] = useState<string | null>(null);
   const { user } = useAuth();
 
-  // Timer
   useEffect(() => {
     const interval = setInterval(() => {
       setIsActive(isEasterEventActive());
@@ -35,61 +36,16 @@ export function EasterThemeProvider({ children }: { children: React.ReactNode })
   }, []);
 
   // Auto-grant random banner on login during event
-  const grantBanner = useCallback(async () => {
+  useEffect(() => {
     if (!user || !isEasterEventActive()) return;
-
-    // Check if user already has a banner
-    const { data: existing } = await supabase
-      .from("user_inventory" as any)
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("item_type", "banner")
-      .eq("source", "event");
-
-    if (existing && existing.length > 0) {
+    const bannerId = grantRandomBanner(user.id);
+    if (bannerId) {
       setBannerGranted(true);
-      return;
+      setGrantedBannerId(bannerId);
     }
-
-    // Get all banners and pick a random one
-    const { data: banners } = await supabase
-      .from("easter_banners" as any)
-      .select("id");
-
-    if (!banners || banners.length === 0) return;
-
-    const randomBanner = banners[Math.floor(Math.random() * banners.length)];
-
-    await supabase.from("user_inventory" as any).insert({
-      user_id: user.id,
-      item_type: "banner",
-      item_id: (randomBanner as any).id,
-      source: "event",
-    });
-
-    // Auto-set as active banner
-    const { data: existingConfig } = await supabase
-      .from("user_banner_config" as any)
-      .select("id")
-      .eq("user_id", user.id)
-      .single();
-
-    if (!existingConfig) {
-      await supabase.from("user_banner_config" as any).insert({
-        user_id: user.id,
-        active_banner_id: (randomBanner as any).id,
-        gifts_layout: [],
-      });
-    }
-
-    setBannerGranted(true);
   }, [user]);
 
-  useEffect(() => {
-    grantBanner();
-  }, [grantBanner]);
-
-  // Apply Easter CSS overrides when active
+  // Apply Easter CSS class when active
   useEffect(() => {
     const root = document.documentElement;
     if (isActive) {
@@ -101,7 +57,7 @@ export function EasterThemeProvider({ children }: { children: React.ReactNode })
   }, [isActive]);
 
   return (
-    <EasterContext.Provider value={{ isActive, timeRemaining, bannerGranted }}>
+    <EasterContext.Provider value={{ isActive, timeRemaining, bannerGranted, grantedBannerId }}>
       {children}
     </EasterContext.Provider>
   );
