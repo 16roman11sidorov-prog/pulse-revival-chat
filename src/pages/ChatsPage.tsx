@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Edit, Plus, Users, Megaphone, Bot, MessageCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/components/AuthProvider";
@@ -14,6 +14,7 @@ interface ConversationItem {
   id: string;
   name: string;
   avatar: string;
+  avatarUrl: string | null;
   lastMessage: string;
   time: string;
   status: string;
@@ -131,14 +132,14 @@ export default function ChatsPage() {
       }
 
       // 3. Batch fetch all partner profiles
-      let profileMap = new Map<string, { display_name: string | null; username: string | null; status: string }>();
+      let profileMap = new Map<string, { display_name: string | null; username: string | null; status: string; avatar_url: string | null }>();
       if (partnerUserIds.size > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("user_id, display_name, username, status")
+          .select("user_id, display_name, username, status, avatar_url")
           .in("user_id", [...partnerUserIds]);
         for (const p of profiles || []) {
-          profileMap.set(p.user_id, p);
+          profileMap.set(p.user_id, p as any);
         }
       }
 
@@ -146,6 +147,7 @@ export default function ChatsPage() {
       const items: ConversationItem[] = convs.map((conv) => {
         let name = conv.name || "Чат";
         let status = "offline";
+        let avatarUrl: string | null = null;
 
         if (conv.type === "direct") {
           const partnerId = partnerMap.get(conv.id);
@@ -154,6 +156,7 @@ export default function ChatsPage() {
             if (profile) {
               name = profile.display_name || profile.username || "Пользователь";
               status = profile.status;
+              avatarUrl = profile.avatar_url || null;
             }
           }
         }
@@ -163,6 +166,7 @@ export default function ChatsPage() {
           id: conv.id,
           name,
           avatar: name[0],
+          avatarUrl,
           lastMessage: lastMsg?.content || "Нет сообщений",
           time: lastMsg ? formatTime(lastMsg.created_at) : "",
           status,
@@ -371,6 +375,9 @@ export default function ChatsPage() {
               >
                 <div className="relative">
                   <Avatar className="h-12 w-12">
+                    {chat.type === "direct" && chat.avatarUrl ? (
+                      <AvatarImage src={chat.avatarUrl} alt={chat.name} />
+                    ) : null}
                     <AvatarFallback className="gradient-pulse text-white font-bold">
                       {getConvIcon(chat.type) || chat.avatar}
                     </AvatarFallback>
