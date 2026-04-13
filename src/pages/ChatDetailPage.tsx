@@ -358,7 +358,11 @@ export default function ChatDetailPage() {
         <button onClick={() => navigate("/chats")} className="rounded-full p-1 hover:bg-muted">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <div className="relative">
+        <button
+          onClick={() => convType === "direct" && partnerId && navigate(`/contact/${chatId}/${partnerId}`)}
+          className="relative"
+          disabled={convType !== "direct" || !partnerId}
+        >
           <Avatar className="h-9 w-9">
             <AvatarFallback className="gradient-pulse text-white text-sm font-bold">
               {convType === "group" ? <span className="text-xs">👥</span> : convType === "channel" ? <span className="text-xs">📢</span> : partnerName[0]}
@@ -367,7 +371,7 @@ export default function ChatDetailPage() {
           {convType === "direct" && partnerStatus === "online" && (
             <div className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-card bg-[hsl(var(--online))]" />
           )}
-        </div>
+        </button>
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-sm truncate">{partnerName}</p>
           {isPartnerTyping ? (
