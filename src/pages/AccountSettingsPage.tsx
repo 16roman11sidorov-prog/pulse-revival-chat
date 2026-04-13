@@ -20,6 +20,7 @@ interface ProfileData {
   who_can_add_to_groups: string;
   who_can_see_profile: string;
   who_can_see_last_seen: string;
+  who_can_see_avatar: string;
 }
 
 type Section = "main" | "password" | "email" | "privacy";
@@ -61,6 +62,7 @@ export default function AccountSettingsPage() {
   const [whoCanAddToGroups, setWhoCanAddToGroups] = useState("everyone");
   const [whoCanSeeProfile, setWhoCanSeeProfile] = useState("everyone");
   const [whoCanSeeLastSeen, setWhoCanSeeLastSeen] = useState("everyone");
+  const [whoCanSeeAvatar, setWhoCanSeeAvatar] = useState("everyone");
 
   useEffect(() => {
     if (!user) return;
@@ -70,7 +72,7 @@ export default function AccountSettingsPage() {
   const loadProfile = async () => {
     const { data } = await supabase
       .from("profiles")
-      .select("display_name, username, bio, avatar_url, who_can_message, who_can_add_to_groups, who_can_see_profile, who_can_see_last_seen")
+      .select("display_name, username, bio, avatar_url, who_can_message, who_can_add_to_groups, who_can_see_profile, who_can_see_last_seen, who_can_see_avatar")
       .eq("user_id", user!.id)
       .single();
 
@@ -84,6 +86,7 @@ export default function AccountSettingsPage() {
       setWhoCanAddToGroups(data.who_can_add_to_groups);
       setWhoCanSeeProfile(data.who_can_see_profile);
       setWhoCanSeeLastSeen(data.who_can_see_last_seen);
+      setWhoCanSeeAvatar((data as any).who_can_see_avatar || "everyone");
     }
     setLoading(false);
   };
@@ -198,7 +201,8 @@ export default function AccountSettingsPage() {
         who_can_add_to_groups: whoCanAddToGroups,
         who_can_see_profile: whoCanSeeProfile,
         who_can_see_last_seen: whoCanSeeLastSeen,
-      })
+        who_can_see_avatar: whoCanSeeAvatar,
+      } as any)
       .eq("user_id", user!.id);
 
     if (error) {
@@ -499,6 +503,12 @@ export default function AccountSettingsPage() {
               description="Время последнего визита"
               value={whoCanSeeLastSeen}
               onChange={setWhoCanSeeLastSeen}
+            />
+            <PrivacySetting
+              label="Кто видит мою аватарку"
+              description="Фото профиля"
+              value={whoCanSeeAvatar}
+              onChange={setWhoCanSeeAvatar}
             />
 
             <Button

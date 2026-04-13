@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Paperclip, Smile, Mic, Send, Phone, Video, MoreVertical, X, FileText, Loader2, Square, Gift } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
@@ -36,6 +36,7 @@ export default function ChatDetailPage() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<MessageItem[]>([]);
   const [partnerName, setPartnerName] = useState("Чат");
+  const [partnerAvatar, setPartnerAvatar] = useState<string | null>(null);
   const [partnerStatus, setPartnerStatus] = useState("offline");
   const [convType, setConvType] = useState("direct");
   const [isAdmin, setIsAdmin] = useState(false);
@@ -167,6 +168,7 @@ export default function ChatDetailPage() {
       if (profile) {
         setPartnerName((profile as any).display_name || (profile as any).username || "Пользователь");
         setPartnerStatus((profile as any).status);
+        setPartnerAvatar((profile as any).avatar_url || null);
       }
     }
   };
@@ -364,6 +366,9 @@ export default function ChatDetailPage() {
           disabled={convType !== "direct" || !partnerId}
         >
           <Avatar className="h-9 w-9">
+            {convType === "direct" && partnerAvatar ? (
+              <AvatarImage src={partnerAvatar} alt={partnerName} />
+            ) : null}
             <AvatarFallback className="gradient-pulse text-white text-sm font-bold">
               {convType === "group" ? <span className="text-xs">👥</span> : convType === "channel" ? <span className="text-xs">📢</span> : partnerName[0]}
             </AvatarFallback>
