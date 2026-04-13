@@ -22,6 +22,7 @@ import ProfilePage from "./pages/ProfilePage";
 import SupportPage from "./pages/SupportPage";
 import AccountSettingsPage from "./pages/AccountSettingsPage";
 import InventoryPage from "./pages/InventoryPage";
+import ContactProfilePage from "./pages/ContactProfilePage";
 import BannerEditor from "./components/easter/BannerEditor";
 import NotFound from "./pages/NotFound";
 import { EasterThemeProvider } from "./components/easter/EasterThemeProvider";
@@ -66,6 +67,7 @@ const AppRoutes = () => {
         <Route path="/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><AccountSettingsPage /></ProtectedRoute>} />
         <Route path="/inventory" element={<ProtectedRoute><InventoryPage /></ProtectedRoute>} />
+        <Route path="/contact/:chatId/:userId" element={<ProtectedRoute><ContactProfilePage /></ProtectedRoute>} />
         <Route path="/customize" element={<ProtectedRoute><BannerEditor /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
