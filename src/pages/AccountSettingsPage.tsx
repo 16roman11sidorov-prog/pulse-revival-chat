@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Camera, User, Mail, Lock, AtSign, Eye, EyeOff, Check, Loader2, Bell } from "lucide-react";
+import { ArrowLeft, Camera, User, Mail, Lock, AtSign, Eye, EyeOff, Check, Loader2, Bell, Crown } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useNotifications } from "@/hooks/use-notifications";
+import { AvatarFrame, type FrameType } from "@/components/AvatarFrame";
 
 interface ProfileData {
   display_name: string | null;
@@ -23,7 +24,16 @@ interface ProfileData {
   who_can_see_avatar: string;
 }
 
-type Section = "main" | "password" | "email" | "privacy";
+type Section = "main" | "password" | "email" | "privacy" | "frame";
+
+const FRAME_OPTIONS: { value: FrameType; label: string; emoji: string }[] = [
+  { value: null, label: "Без рамки", emoji: "⭕" },
+  { value: "gold", label: "Золотая", emoji: "🥇" },
+  { value: "silver", label: "Серебряная", emoji: "🥈" },
+  { value: "neon", label: "Неоновая", emoji: "💎" },
+  { value: "gradient", label: "Градиентная", emoji: "🌈" },
+  { value: "animated", label: "Анимированная", emoji: "✨" },
+];
 
 const privacyOptions = [
   { value: "everyone", label: "Все" },
@@ -64,6 +74,10 @@ export default function AccountSettingsPage() {
   const [whoCanSeeLastSeen, setWhoCanSeeLastSeen] = useState("everyone");
   const [whoCanSeeAvatar, setWhoCanSeeAvatar] = useState("everyone");
 
+  // Pro
+  const [isPro, setIsPro] = useState(false);
+  const [avatarFrame, setAvatarFrame] = useState<FrameType>(null);
+
   useEffect(() => {
     if (!user) return;
     loadProfile();
@@ -72,7 +86,7 @@ export default function AccountSettingsPage() {
   const loadProfile = async () => {
     const { data } = await supabase
       .from("profiles")
-      .select("display_name, username, bio, avatar_url, who_can_message, who_can_add_to_groups, who_can_see_profile, who_can_see_last_seen, who_can_see_avatar")
+      .select("display_name, username, bio, avatar_url, who_can_message, who_can_add_to_groups, who_can_see_profile, who_can_see_last_seen, who_can_see_avatar, is_pro, avatar_frame")
       .eq("user_id", user!.id)
       .single();
 
@@ -87,6 +101,8 @@ export default function AccountSettingsPage() {
       setWhoCanSeeProfile(data.who_can_see_profile);
       setWhoCanSeeLastSeen(data.who_can_see_last_seen);
       setWhoCanSeeAvatar((data as any).who_can_see_avatar || "everyone");
+      setIsPro(!!(data as any).is_pro);
+      setAvatarFrame(((data as any).avatar_frame as FrameType) || null);
     }
     setLoading(false);
   };
@@ -236,6 +252,7 @@ export default function AccountSettingsPage() {
           {section === "password" && "Изменить пароль"}
           {section === "email" && "Изменить почту"}
           {section === "privacy" && "Конфиденциальность"}
+          {section === "frame" && "Рамка аватарки"}
         </h1>
       </div>
 
@@ -358,6 +375,18 @@ export default function AccountSettingsPage() {
                   <p className="text-xs text-muted-foreground">Кто может писать, видеть профиль...</p>
                 </div>
               </button>
+              {isPro && (
+                <button
+                  onClick={() => setSection("frame")}
+                  className="flex w-full items-center gap-3 px-4 py-3.5 border-b border-border hover:bg-muted/50 transition-colors bg-yellow-500/5"
+                >
+                  <Crown className="h-5 w-5 text-yellow-500" />
+                  <div className="flex-1 text-left">
+                    <p className="text-sm font-medium text-yellow-500">Рамка аватарки</p>
+                    <p className="text-xs text-muted-foreground">{avatarFrame ? FRAME_OPTIONS.find(f => f.value === avatarFrame)?.label || "Выбрана" : "Не выбрана"}</p>
+                  </div>
+                </button>
+              )}
               <button
                 onClick={async () => {
                   if (permission === "granted") {
@@ -518,6 +547,65 @@ export default function AccountSettingsPage() {
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
               Сохранить настройки
+            </Button>
+          </motion.div>
+        )}
+
+        {section === "frame" && isPro && (
+          <motion.div
+            key="frame"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="flex-1 px-4 py-6 space-y-4"
+          >
+            <p className="text-sm text-muted-foreground">Выберите рамку для вашей аватарки. Она будет видна всем пользователям.</p>
+
+            <div className="flex justify-center mb-4">
+              <AvatarFrame frame={avatarFrame} glow>
+                <Avatar className="h-24 w-24">
+                  {avatarUrl ? <AvatarImage src={avatarUrl} alt="Avatar" /> : null}
+                  <AvatarFallback className="gradient-pulse text-white text-3xl font-black">
+                    {displayName?.[0] || "?"}
+                  </AvatarFallback>
+                </Avatar>
+              </AvatarFrame>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {FRAME_OPTIONS.map((opt) => (
+                <button
+                  key={opt.label}
+                  onClick={() => setAvatarFrame(opt.value)}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl border p-3 transition-all",
+                    avatarFrame === opt.value
+                      ? "border-primary bg-primary/10"
+                      : "border-border hover:border-primary/50"
+                  )}
+                >
+                  <span className="text-xl">{opt.emoji}</span>
+                  <span className="text-sm font-medium">{opt.label}</span>
+                  {avatarFrame === opt.value && <Check className="h-4 w-4 text-primary ml-auto" />}
+                </button>
+              ))}
+            </div>
+
+            <Button
+              onClick={async () => {
+                setSaving(true);
+                await supabase
+                  .from("profiles")
+                  .update({ avatar_frame: avatarFrame } as any)
+                  .eq("user_id", user!.id);
+                toast.success("Рамка сохранена");
+                setSaving(false);
+              }}
+              disabled={saving}
+              className="w-full rounded-xl gradient-pulse text-white border-0"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
+              Сохранить рамку
             </Button>
           </motion.div>
         )}

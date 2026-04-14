@@ -9,6 +9,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { AvatarFrame, type FrameType } from "@/components/AvatarFrame";
 
 interface ConversationItem {
   id: string;
@@ -20,6 +21,8 @@ interface ConversationItem {
   status: string;
   unread: number;
   type: string;
+  isPro: boolean;
+  avatarFrame: string | null;
 }
 
 interface BotItem {
@@ -132,11 +135,11 @@ export default function ChatsPage() {
       }
 
       // 3. Batch fetch all partner profiles
-      let profileMap = new Map<string, { display_name: string | null; username: string | null; status: string; avatar_url: string | null }>();
+      let profileMap = new Map<string, { display_name: string | null; username: string | null; status: string; avatar_url: string | null; is_pro: boolean; avatar_frame: string | null }>();
       if (partnerUserIds.size > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("user_id, display_name, username, status, avatar_url")
+          .select("user_id, display_name, username, status, avatar_url, is_pro, avatar_frame")
           .in("user_id", [...partnerUserIds]);
         for (const p of profiles || []) {
           profileMap.set(p.user_id, p as any);
@@ -148,6 +151,8 @@ export default function ChatsPage() {
         let name = conv.name || "Чат";
         let status = "offline";
         let avatarUrl: string | null = null;
+        let isPro = false;
+        let avatarFrame: string | null = null;
 
         if (conv.type === "direct") {
           const partnerId = partnerMap.get(conv.id);
@@ -157,6 +162,8 @@ export default function ChatsPage() {
               name = profile.display_name || profile.username || "Пользователь";
               status = profile.status;
               avatarUrl = profile.avatar_url || null;
+              isPro = !!(profile as any).is_pro;
+              avatarFrame = (profile as any).avatar_frame || null;
             }
           }
         }
@@ -172,6 +179,8 @@ export default function ChatsPage() {
           status,
           unread: 0,
           type: conv.type,
+          isPro,
+          avatarFrame,
         };
       });
 
@@ -374,21 +383,26 @@ export default function ChatsPage() {
                 className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-left active:scale-[0.98]"
               >
                 <div className="relative">
-                  <Avatar className="h-12 w-12">
-                    {chat.type === "direct" && chat.avatarUrl ? (
-                      <AvatarImage src={chat.avatarUrl} alt={chat.name} />
-                    ) : null}
-                    <AvatarFallback className="gradient-pulse text-white font-bold">
-                      {getConvIcon(chat.type) || chat.avatar}
-                    </AvatarFallback>
-                  </Avatar>
+                  <AvatarFrame frame={chat.type === "direct" ? (chat.avatarFrame as FrameType) : null} glow={chat.isPro}>
+                    <Avatar className="h-12 w-12">
+                      {chat.type === "direct" && chat.avatarUrl ? (
+                        <AvatarImage src={chat.avatarUrl} alt={chat.name} />
+                      ) : null}
+                      <AvatarFallback className="gradient-pulse text-white font-bold">
+                        {getConvIcon(chat.type) || chat.avatar}
+                      </AvatarFallback>
+                    </Avatar>
+                  </AvatarFrame>
                   {chat.type === "direct" && chat.status === "online" && (
                     <div className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-background bg-[hsl(var(--online))]" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold truncate">{chat.name}</span>
+                    <span className="font-semibold truncate flex items-center gap-1">
+                      {chat.name}
+                      {chat.isPro && <span className="text-xs">👑</span>}
+                    </span>
                     <span className="text-xs text-muted-foreground">{chat.time}</span>
                   </div>
                   <div className="flex items-center justify-between mt-0.5">

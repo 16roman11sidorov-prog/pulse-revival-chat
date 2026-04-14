@@ -14,13 +14,85 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      pro_requests: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          status: string
+          user_id: string | null
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          status?: string
+          user_id?: string | null
+          username: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          status?: string
+          user_id?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_frame: string | null
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          is_pro: boolean
+          pro_expires_at: string | null
+          updated_at: string
+          user_id: string
+          username: string | null
+          who_can_see_avatar: string | null
+        }
+        Insert: {
+          avatar_frame?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_pro?: boolean
+          pro_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+          username?: string | null
+          who_can_see_avatar?: string | null
+        }
+        Update: {
+          avatar_frame?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_pro?: boolean
+          pro_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+          username?: string | null
+          who_can_see_avatar?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      grant_pro: { Args: { target_user_id: string }; Returns: undefined }
+      is_pulse_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
