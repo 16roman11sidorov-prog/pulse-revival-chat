@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Camera, User, Mail, Lock, AtSign, Eye, EyeOff, Check, Loader2, Bell } from "lucide-react";
+import { ArrowLeft, Camera, User, Mail, Lock, AtSign, Eye, EyeOff, Check, Loader2, Bell, Crown } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useNotifications } from "@/hooks/use-notifications";
+import { AvatarFrame, type FrameType } from "@/components/AvatarFrame";
 
 interface ProfileData {
   display_name: string | null;
@@ -23,7 +24,16 @@ interface ProfileData {
   who_can_see_avatar: string;
 }
 
-type Section = "main" | "password" | "email" | "privacy";
+type Section = "main" | "password" | "email" | "privacy" | "frame";
+
+const FRAME_OPTIONS: { value: FrameType; label: string; emoji: string }[] = [
+  { value: null, label: "Без рамки", emoji: "⭕" },
+  { value: "gold", label: "Золотая", emoji: "🥇" },
+  { value: "silver", label: "Серебряная", emoji: "🥈" },
+  { value: "neon", label: "Неоновая", emoji: "💎" },
+  { value: "gradient", label: "Градиентная", emoji: "🌈" },
+  { value: "animated", label: "Анимированная", emoji: "✨" },
+];
 
 const privacyOptions = [
   { value: "everyone", label: "Все" },
