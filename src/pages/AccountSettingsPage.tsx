@@ -375,6 +375,18 @@ export default function AccountSettingsPage() {
                   <p className="text-xs text-muted-foreground">Кто может писать, видеть профиль...</p>
                 </div>
               </button>
+              {isPro && (
+                <button
+                  onClick={() => setSection("frame")}
+                  className="flex w-full items-center gap-3 px-4 py-3.5 border-b border-border hover:bg-muted/50 transition-colors bg-yellow-500/5"
+                >
+                  <Crown className="h-5 w-5 text-yellow-500" />
+                  <div className="flex-1 text-left">
+                    <p className="text-sm font-medium text-yellow-500">Рамка аватарки</p>
+                    <p className="text-xs text-muted-foreground">{avatarFrame ? FRAME_OPTIONS.find(f => f.value === avatarFrame)?.label || "Выбрана" : "Не выбрана"}</p>
+                  </div>
+                </button>
+              )}
               <button
                 onClick={async () => {
                   if (permission === "granted") {
