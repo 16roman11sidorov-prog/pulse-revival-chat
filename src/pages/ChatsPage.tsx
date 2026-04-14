@@ -151,6 +151,8 @@ export default function ChatsPage() {
         let name = conv.name || "Чат";
         let status = "offline";
         let avatarUrl: string | null = null;
+        let isPro = false;
+        let avatarFrame: string | null = null;
 
         if (conv.type === "direct") {
           const partnerId = partnerMap.get(conv.id);
@@ -160,6 +162,8 @@ export default function ChatsPage() {
               name = profile.display_name || profile.username || "Пользователь";
               status = profile.status;
               avatarUrl = profile.avatar_url || null;
+              isPro = !!(profile as any).is_pro;
+              avatarFrame = (profile as any).avatar_frame || null;
             }
           }
         }
@@ -175,6 +179,8 @@ export default function ChatsPage() {
           status,
           unread: 0,
           type: conv.type,
+          isPro,
+          avatarFrame,
         };
       });
 
