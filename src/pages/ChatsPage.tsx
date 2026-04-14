@@ -383,21 +383,26 @@ export default function ChatsPage() {
                 className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-left active:scale-[0.98]"
               >
                 <div className="relative">
-                  <Avatar className="h-12 w-12">
-                    {chat.type === "direct" && chat.avatarUrl ? (
-                      <AvatarImage src={chat.avatarUrl} alt={chat.name} />
-                    ) : null}
-                    <AvatarFallback className="gradient-pulse text-white font-bold">
-                      {getConvIcon(chat.type) || chat.avatar}
-                    </AvatarFallback>
-                  </Avatar>
+                  <AvatarFrame frame={chat.type === "direct" ? (chat.avatarFrame as FrameType) : null} glow={chat.isPro}>
+                    <Avatar className="h-12 w-12">
+                      {chat.type === "direct" && chat.avatarUrl ? (
+                        <AvatarImage src={chat.avatarUrl} alt={chat.name} />
+                      ) : null}
+                      <AvatarFallback className="gradient-pulse text-white font-bold">
+                        {getConvIcon(chat.type) || chat.avatar}
+                      </AvatarFallback>
+                    </Avatar>
+                  </AvatarFrame>
                   {chat.type === "direct" && chat.status === "online" && (
                     <div className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-background bg-[hsl(var(--online))]" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold truncate">{chat.name}</span>
+                    <span className="font-semibold truncate flex items-center gap-1">
+                      {chat.name}
+                      {chat.isPro && <span className="text-xs">👑</span>}
+                    </span>
                     <span className="text-xs text-muted-foreground">{chat.time}</span>
                   </div>
                   <div className="flex items-center justify-between mt-0.5">
