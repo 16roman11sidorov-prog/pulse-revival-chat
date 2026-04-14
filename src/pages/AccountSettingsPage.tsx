@@ -252,6 +252,7 @@ export default function AccountSettingsPage() {
           {section === "password" && "Изменить пароль"}
           {section === "email" && "Изменить почту"}
           {section === "privacy" && "Конфиденциальность"}
+          {section === "frame" && "Рамка аватарки"}
         </h1>
       </div>
 
