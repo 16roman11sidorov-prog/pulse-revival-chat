@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { ProfileBanner } from "@/components/easter/ProfileBanner";
+import { AvatarFrame, type FrameType } from "@/components/AvatarFrame";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import {
@@ -113,6 +114,8 @@ export default function ContactProfilePage() {
 
   const displayName = profile?.display_name || profile?.username || "Пользователь";
   const status = profile?.status || "offline";
+  const isPro = !!(profile as any)?.is_pro;
+  const avatarFrame = ((profile as any)?.avatar_frame as FrameType) || null;
 
   if (loading) {
     return (
@@ -157,18 +160,28 @@ export default function ContactProfilePage() {
 
         <div className="flex flex-col items-center">
           <div className="relative">
-            <Avatar className="h-24 w-24 border-4 border-white/20 shadow-xl">
-              {profile?.avatar_url ? <AvatarImage src={profile.avatar_url} alt={displayName} /> : null}
-              <AvatarFallback className="bg-white/20 text-white text-3xl font-black">
-                {displayName[0]}
-              </AvatarFallback>
-            </Avatar>
+            <AvatarFrame frame={avatarFrame} glow={isPro}>
+              <Avatar className="h-24 w-24 border-4 border-white/20 shadow-xl">
+                {profile?.avatar_url ? <AvatarImage src={profile.avatar_url} alt={displayName} /> : null}
+                <AvatarFallback className="bg-white/20 text-white text-3xl font-black">
+                  {displayName[0]}
+                </AvatarFallback>
+              </Avatar>
+            </AvatarFrame>
             {status === "online" && (
               <div className="absolute bottom-1 right-1 h-4 w-4 rounded-full border-[3px] border-white/30 bg-[hsl(var(--online))]" />
             )}
           </div>
-          <p className="mt-3 text-xl font-bold text-white">{displayName}</p>
+          <div className="flex items-center gap-2 mt-3">
+            <p className="text-xl font-bold text-white">{displayName}</p>
+            {isPro && <span className="text-lg">👑</span>}
+          </div>
           <p className="text-sm text-white/70">@{profile?.username || "user"}</p>
+          {isPro && (
+            <span className="mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-yellow-400/20 text-yellow-300 border border-yellow-400/30">
+              PRO
+            </span>
+          )}
           <p className="text-xs text-white/50 mt-1">
             {status === "online" ? "в сети" : "был(а) недавно"}
           </p>
