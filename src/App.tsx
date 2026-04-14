@@ -24,6 +24,8 @@ import AccountSettingsPage from "./pages/AccountSettingsPage";
 import InventoryPage from "./pages/InventoryPage";
 import ContactProfilePage from "./pages/ContactProfilePage";
 import BannerEditor from "./components/easter/BannerEditor";
+import ProPage from "./pages/ProPage";
+import PulseAdminPage from "./pages/PulseAdminPage";
 import NotFound from "./pages/NotFound";
 import { EasterThemeProvider } from "./components/easter/EasterThemeProvider";
 import { EasterCountdown } from "./components/easter/EasterCountdown";
@@ -69,6 +71,8 @@ const AppRoutes = () => {
         <Route path="/inventory" element={<ProtectedRoute><InventoryPage /></ProtectedRoute>} />
         <Route path="/contact/:chatId/:userId" element={<ProtectedRoute><ContactProfilePage /></ProtectedRoute>} />
         <Route path="/customize" element={<ProtectedRoute><BannerEditor /></ProtectedRoute>} />
+        <Route path="/pro" element={<ProtectedRoute><ProPage /></ProtectedRoute>} />
+        <Route path="/pulse-admin" element={<ProtectedRoute><PulseAdminPage /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <BottomNav />
