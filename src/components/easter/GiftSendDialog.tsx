@@ -5,14 +5,16 @@ import { AnimatedEgg } from "./AnimatedEgg";
 import {
   isEasterEventActive,
   MAX_GIFTS_PER_USER,
+  MAX_GIFTS_PER_USER_PRO,
   EASTER_GIFTS,
   getGiftSendCount,
   incrementGiftSendCount,
   addGiftToInventory,
 } from "@/lib/easter-config";
+import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "@/hooks/use-toast";
-import { Gift, AlertTriangle } from "lucide-react";
+import { Gift } from "lucide-react";
 
 interface GiftSendDialogProps {
   open: boolean;
@@ -26,12 +28,17 @@ export function GiftSendDialog({ open, onOpenChange, receiverId, receiverName }:
   const [sending, setSending] = useState(false);
   const [sentCount, setSentCount] = useState(0);
   const [sentGiftId, setSentGiftId] = useState<string | null>(null);
+  const [isPro, setIsPro] = useState(false);
 
   useEffect(() => {
     if (open && user) {
       setSentCount(getGiftSendCount(user.id));
+      supabase.from("profiles").select("is_pro").eq("user_id", user.id).single()
+        .then(({ data }) => setIsPro(!!(data as any)?.is_pro));
     }
   }, [open, user]);
+
+  const maxGifts = isPro ? MAX_GIFTS_PER_USER_PRO : MAX_GIFTS_PER_USER;
 
   function sendGift(giftId: string) {
     if (!user || sending) return;
@@ -41,8 +48,8 @@ export function GiftSendDialog({ open, onOpenChange, receiverId, receiverName }:
       return;
     }
 
-    if (sentCount >= MAX_GIFTS_PER_USER) {
-      toast({ title: "Лимит достигнут", description: `Максимум ${MAX_GIFTS_PER_USER} подарков`, variant: "destructive" });
+    if (sentCount >= maxGifts) {
+      toast({ title: "Лимит достигнут", description: `Максимум ${maxGifts} подарков`, variant: "destructive" });
       return;
     }
 
@@ -62,7 +69,7 @@ export function GiftSendDialog({ open, onOpenChange, receiverId, receiverName }:
     }, 1500);
   }
 
-  const remaining = MAX_GIFTS_PER_USER - sentCount;
+  const remaining = maxGifts - sentCount;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -73,7 +80,8 @@ export function GiftSendDialog({ open, onOpenChange, receiverId, receiverName }:
             Отправить подарок
           </DialogTitle>
           <DialogDescription>
-            {receiverName} • Осталось: {remaining}/{MAX_GIFTS_PER_USER}
+            {receiverName} • Осталось: {remaining}/{maxGifts}
+            {isPro && <span className="ml-1 text-yellow-500">👑 Pro</span>}
           </DialogDescription>
         </DialogHeader>
 

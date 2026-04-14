@@ -4,6 +4,7 @@
 export const EASTER_EVENT_START = new Date('2026-04-12T12:00:00Z');
 export const EASTER_EVENT_END = new Date('2026-04-13T12:00:00Z');
 export const MAX_GIFTS_PER_USER = 5;
+export const MAX_GIFTS_PER_USER_PRO = 10;
 
 export function isEasterEventActive(): boolean {
   const now = new Date();
