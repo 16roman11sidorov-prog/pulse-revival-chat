@@ -9,6 +9,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { AvatarFrame, type FrameType } from "@/components/AvatarFrame";
 
 interface ConversationItem {
   id: string;
@@ -20,6 +21,8 @@ interface ConversationItem {
   status: string;
   unread: number;
   type: string;
+  isPro: boolean;
+  avatarFrame: string | null;
 }
 
 interface BotItem {
@@ -132,11 +135,11 @@ export default function ChatsPage() {
       }
 
       // 3. Batch fetch all partner profiles
-      let profileMap = new Map<string, { display_name: string | null; username: string | null; status: string; avatar_url: string | null }>();
+      let profileMap = new Map<string, { display_name: string | null; username: string | null; status: string; avatar_url: string | null; is_pro: boolean; avatar_frame: string | null }>();
       if (partnerUserIds.size > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("user_id, display_name, username, status, avatar_url")
+          .select("user_id, display_name, username, status, avatar_url, is_pro, avatar_frame")
           .in("user_id", [...partnerUserIds]);
         for (const p of profiles || []) {
           profileMap.set(p.user_id, p as any);
