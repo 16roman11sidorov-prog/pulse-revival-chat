@@ -74,6 +74,10 @@ export default function AccountSettingsPage() {
   const [whoCanSeeLastSeen, setWhoCanSeeLastSeen] = useState("everyone");
   const [whoCanSeeAvatar, setWhoCanSeeAvatar] = useState("everyone");
 
+  // Pro
+  const [isPro, setIsPro] = useState(false);
+  const [avatarFrame, setAvatarFrame] = useState<FrameType>(null);
+
   useEffect(() => {
     if (!user) return;
     loadProfile();
@@ -82,7 +86,7 @@ export default function AccountSettingsPage() {
   const loadProfile = async () => {
     const { data } = await supabase
       .from("profiles")
-      .select("display_name, username, bio, avatar_url, who_can_message, who_can_add_to_groups, who_can_see_profile, who_can_see_last_seen, who_can_see_avatar")
+      .select("display_name, username, bio, avatar_url, who_can_message, who_can_add_to_groups, who_can_see_profile, who_can_see_last_seen, who_can_see_avatar, is_pro, avatar_frame")
       .eq("user_id", user!.id)
       .single();
 
@@ -97,6 +101,8 @@ export default function AccountSettingsPage() {
       setWhoCanSeeProfile(data.who_can_see_profile);
       setWhoCanSeeLastSeen(data.who_can_see_last_seen);
       setWhoCanSeeAvatar((data as any).who_can_see_avatar || "everyone");
+      setIsPro(!!(data as any).is_pro);
+      setAvatarFrame(((data as any).avatar_frame as FrameType) || null);
     }
     setLoading(false);
   };
