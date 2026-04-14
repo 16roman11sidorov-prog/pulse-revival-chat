@@ -550,6 +550,65 @@ export default function AccountSettingsPage() {
             </Button>
           </motion.div>
         )}
+
+        {section === "frame" && isPro && (
+          <motion.div
+            key="frame"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="flex-1 px-4 py-6 space-y-4"
+          >
+            <p className="text-sm text-muted-foreground">Выберите рамку для вашей аватарки. Она будет видна всем пользователям.</p>
+
+            <div className="flex justify-center mb-4">
+              <AvatarFrame frame={avatarFrame} glow>
+                <Avatar className="h-24 w-24">
+                  {avatarUrl ? <AvatarImage src={avatarUrl} alt="Avatar" /> : null}
+                  <AvatarFallback className="gradient-pulse text-white text-3xl font-black">
+                    {displayName?.[0] || "?"}
+                  </AvatarFallback>
+                </Avatar>
+              </AvatarFrame>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {FRAME_OPTIONS.map((opt) => (
+                <button
+                  key={opt.label}
+                  onClick={() => setAvatarFrame(opt.value)}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl border p-3 transition-all",
+                    avatarFrame === opt.value
+                      ? "border-primary bg-primary/10"
+                      : "border-border hover:border-primary/50"
+                  )}
+                >
+                  <span className="text-xl">{opt.emoji}</span>
+                  <span className="text-sm font-medium">{opt.label}</span>
+                  {avatarFrame === opt.value && <Check className="h-4 w-4 text-primary ml-auto" />}
+                </button>
+              ))}
+            </div>
+
+            <Button
+              onClick={async () => {
+                setSaving(true);
+                await supabase
+                  .from("profiles")
+                  .update({ avatar_frame: avatarFrame } as any)
+                  .eq("user_id", user!.id);
+                toast.success("Рамка сохранена");
+                setSaving(false);
+              }}
+              disabled={saving}
+              className="w-full rounded-xl gradient-pulse text-white border-0"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
+              Сохранить рамку
+            </Button>
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );
