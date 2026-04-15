@@ -171,6 +171,9 @@ export default function ProPage() {
                 <Check className="h-7 w-7 text-green-600" />
               </div>
               <p className="font-semibold">Заявка отправлена!</p>
+              <p className="text-sm text-muted-foreground">
+                Переведи 99₽ на карту ниже и жди подтверждения до 24 часов
+              </p>
               <div className="rounded-xl bg-muted p-4 text-left space-y-2">
                 <p className="text-sm font-medium">Реквизиты для оплаты:</p>
                 <div className="rounded-lg bg-card border border-border p-3">
@@ -186,9 +189,6 @@ export default function ProPage() {
                   <p className="text-sm font-semibold">99₽</p>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                После оплаты подписка будет активирована администратором в течение 24 часов
-              </p>
             </motion.div>
           )}
         </DialogContent>
