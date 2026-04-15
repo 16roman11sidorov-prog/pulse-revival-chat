@@ -167,7 +167,7 @@ export default function ChatDetailPage() {
         .single();
       if (profile) {
         setPartnerName((profile as any).display_name || (profile as any).username || "Пользователь");
-        setPartnerStatus((profile as any).status);
+        setPartnerStatus("online");
         setPartnerAvatar((profile as any).avatar_url || null);
       }
     }

@@ -31,6 +31,10 @@ export default function ProPage() {
   const [sent, setSent] = useState(false);
 
   const handleSubmit = async () => {
+    if (!user) {
+      toast.error("Войдите в аккаунт");
+      return;
+    }
     if (!username.trim() || !email.trim()) {
       toast.error("Заполните все поля");
       return;
@@ -41,13 +45,14 @@ export default function ProPage() {
     }
     setSending(true);
     const { error } = await supabase.from("pro_requests").insert({
-      user_id: user?.id,
+      user_id: user.id,
       username: username.trim(),
       email: email.trim(),
-    } as any);
+    });
 
     if (error) {
-      toast.error("Ошибка отправки заявки");
+      console.error("Pro request error:", error);
+      toast.error("Ошибка отправки заявки: " + error.message);
     } else {
       setSent(true);
     }
