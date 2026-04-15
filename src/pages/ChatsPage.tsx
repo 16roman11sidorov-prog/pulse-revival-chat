@@ -135,11 +135,11 @@ export default function ChatsPage() {
       }
 
       // 3. Batch fetch all partner profiles
-      let profileMap = new Map<string, { display_name: string | null; username: string | null; status: string; avatar_url: string | null; is_pro: boolean; avatar_frame: string | null }>();
+      let profileMap = new Map<string, { display_name: string | null; username: string | null; avatar_url: string | null; is_pro: boolean; avatar_frame: string | null }>();
       if (partnerUserIds.size > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("user_id, display_name, username, status, avatar_url, is_pro, avatar_frame")
+          .select("user_id, display_name, username, avatar_url, is_pro, avatar_frame")
           .in("user_id", [...partnerUserIds]);
         for (const p of profiles || []) {
           profileMap.set(p.user_id, p as any);
@@ -149,7 +149,7 @@ export default function ChatsPage() {
       // 4. Build items
       const items: ConversationItem[] = convs.map((conv) => {
         let name = conv.name || "Чат";
-        let status = "offline";
+        let status = "";
         let avatarUrl: string | null = null;
         let isPro = false;
         let avatarFrame: string | null = null;
@@ -160,7 +160,6 @@ export default function ChatsPage() {
             const profile = profileMap.get(partnerId);
             if (profile) {
               name = profile.display_name || profile.username || "Пользователь";
-              status = profile.status;
               avatarUrl = profile.avatar_url || null;
               isPro = !!(profile as any).is_pro;
               avatarFrame = (profile as any).avatar_frame || null;
