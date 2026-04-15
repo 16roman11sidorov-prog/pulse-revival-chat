@@ -33,27 +33,35 @@ export default function PulseAdminPage() {
   }, [user]);
 
   const loadRequests = async () => {
-    const { data } = await supabase
-      .from("pro_requests")
-      .select("*")
-      .order("created_at", { ascending: false });
-    setRequests((data as ProRequest[]) || []);
+    try {
+      const { data, error } = await supabase.functions.invoke("pro-request", {
+        body: { action: "list", admin_email: user?.email },
+      });
+      if (error) throw error;
+      setRequests((Array.isArray(data) ? data : []) as ProRequest[]);
+    } catch (err) {
+      console.error("Load requests error:", err);
+    }
     setLoading(false);
   };
 
   const grantPro = async (req: ProRequest) => {
     setGranting(req.id);
-    const { error } = await supabase.rpc("grant_pro", { target_user_id: req.user_id });
-    if (error) {
-      toast.error("Ошибка: " + error.message);
-    } else {
-      // Update request status
-      await supabase
-        .from("pro_requests")
-        .update({ status: "approved" } as any)
-        .eq("id", req.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("pro-request", {
+        body: {
+          action: "grant",
+          admin_email: user?.email,
+          request_id: req.id,
+          target_user_id: req.user_id,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       toast.success(`Pro выдан пользователю ${req.username}`);
       loadRequests();
+    } catch (err: any) {
+      toast.error("Ошибка: " + (err.message || "Попробуйте позже"));
     }
     setGranting(null);
   };
