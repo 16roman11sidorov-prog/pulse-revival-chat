@@ -23,12 +23,8 @@ import SupportPage from "./pages/SupportPage";
 import AccountSettingsPage from "./pages/AccountSettingsPage";
 import InventoryPage from "./pages/InventoryPage";
 import ContactProfilePage from "./pages/ContactProfilePage";
-import BannerEditor from "./components/easter/BannerEditor";
-import ProPage from "./pages/ProPage";
 import PulseAdminPage from "./pages/PulseAdminPage";
 import NotFound from "./pages/NotFound";
-import { EasterThemeProvider } from "./components/easter/EasterThemeProvider";
-import { EasterCountdown } from "./components/easter/EasterCountdown";
 
 const queryClient = new QueryClient();
 
@@ -51,7 +47,6 @@ const AppRoutes = () => {
   useNotifications();
   return (
     <div className="mx-auto max-w-lg min-h-screen bg-background">
-      <EasterCountdown />
       <Routes>
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/" element={<Navigate to="/chats" replace />} />
@@ -70,8 +65,6 @@ const AppRoutes = () => {
         <Route path="/settings" element={<ProtectedRoute><AccountSettingsPage /></ProtectedRoute>} />
         <Route path="/inventory" element={<ProtectedRoute><InventoryPage /></ProtectedRoute>} />
         <Route path="/contact/:chatId/:userId" element={<ProtectedRoute><ContactProfilePage /></ProtectedRoute>} />
-        <Route path="/customize" element={<ProtectedRoute><BannerEditor /></ProtectedRoute>} />
-        <Route path="/pro" element={<ProtectedRoute><ProPage /></ProtectedRoute>} />
         <Route path="/pulse-admin" element={<ProtectedRoute><PulseAdminPage /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
@@ -84,7 +77,6 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <AuthProvider>
-        <EasterThemeProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
@@ -92,7 +84,6 @@ const App = () => (
             <AppRoutes />
           </BrowserRouter>
         </TooltipProvider>
-        </EasterThemeProvider>
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>

@@ -4,26 +4,14 @@ import { ArrowLeft, MoreVertical, Image, Mic, Ban, Trash2, Eraser, Flag } from "
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
-import { ProfileBanner } from "@/components/easter/ProfileBanner";
-import { AvatarFrame, type FrameType } from "@/components/AvatarFrame";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
 interface MediaItem {
@@ -51,11 +39,7 @@ export default function ContactProfilePage() {
   }, [userId, chatId]);
 
   const loadProfile = async () => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", userId!)
-      .single();
+    const { data } = await supabase.from("profiles").select("*").eq("user_id", userId!).single();
     setProfile(data);
     setLoading(false);
   };
@@ -88,15 +72,8 @@ export default function ContactProfilePage() {
     setConfirmAction(null);
   };
 
-  const handleBlock = () => {
-    toast.success("Пользователь заблокирован");
-    setConfirmAction(null);
-  };
-
-  const handleReport = () => {
-    toast.success("Жалоба отправлена");
-    setConfirmAction(null);
-  };
+  const handleBlock = () => { toast.success("Пользователь заблокирован"); setConfirmAction(null); };
+  const handleReport = () => { toast.success("Жалоба отправлена"); setConfirmAction(null); };
 
   const executeAction = () => {
     if (confirmAction === "block") handleBlock();
@@ -106,20 +83,17 @@ export default function ContactProfilePage() {
   };
 
   const confirmMessages: Record<string, { title: string; desc: string }> = {
-    block: { title: "Заблокировать пользователя?", desc: "Этот пользователь не сможет писать вам сообщения." },
-    delete: { title: "Удалить чат?", desc: "Чат будет удалён из вашего списка. Сообщения останутся у собеседника." },
-    clear: { title: "Очистить чат?", desc: "Все сообщения в этом чате будут удалены безвозвратно." },
-    report: { title: "Пожаловаться?", desc: "Мы рассмотрим вашу жалобу. Пользователь не узнает об этом." },
+    block: { title: "Заблокировать?", desc: "Этот пользователь не сможет писать вам." },
+    delete: { title: "Удалить чат?", desc: "Чат будет удалён из вашего списка." },
+    clear: { title: "Очистить чат?", desc: "Все сообщения будут удалены." },
+    report: { title: "Пожаловаться?", desc: "Мы рассмотрим вашу жалобу." },
   };
 
   const displayName = profile?.display_name || profile?.username || "Пользователь";
-  const status = profile?.status || "offline";
-  const isPro = !!(profile as any)?.is_pro;
-  const avatarFrame = ((profile as any)?.avatar_frame as FrameType) || null;
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
@@ -127,16 +101,16 @@ export default function ContactProfilePage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      {/* Banner + Header */}
-      <ProfileBanner userId={userId!}>
-        <div className="flex items-center justify-between w-full mb-4">
-          <button onClick={() => navigate(-1)} className="rounded-full p-1.5 bg-black/20 hover:bg-black/40 transition-colors">
-            <ArrowLeft className="h-5 w-5 text-white" />
+      {/* Header */}
+      <div className="bg-card border-b border-border px-4 pt-4 pb-6">
+        <div className="flex items-center justify-between mb-6">
+          <button onClick={() => navigate(-1)} className="rounded-full p-1.5 hover:bg-muted transition-colors">
+            <ArrowLeft className="h-5 w-5" />
           </button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="rounded-full p-1.5 bg-black/20 hover:bg-black/40 transition-colors">
-                <MoreVertical className="h-5 w-5 text-white" />
+              <button className="rounded-full p-1.5 hover:bg-muted transition-colors">
+                <MoreVertical className="h-5 w-5" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
@@ -159,34 +133,17 @@ export default function ContactProfilePage() {
         </div>
 
         <div className="flex flex-col items-center">
-          <div className="relative">
-            <AvatarFrame frame={avatarFrame} glow={isPro}>
-              <Avatar className="h-24 w-24 border-4 border-white/20 shadow-xl">
-                {profile?.avatar_url ? <AvatarImage src={profile.avatar_url} alt={displayName} /> : null}
-                <AvatarFallback className="bg-white/20 text-white text-3xl font-black">
-                  {displayName[0]}
-                </AvatarFallback>
-              </Avatar>
-            </AvatarFrame>
-            {status === "online" && (
-              <div className="absolute bottom-1 right-1 h-4 w-4 rounded-full border-[3px] border-white/30 bg-[hsl(var(--online))]" />
-            )}
-          </div>
-          <div className="flex items-center gap-2 mt-3">
-            <p className="text-xl font-bold text-white">{displayName}</p>
-            {isPro && <span className="text-lg">👑</span>}
-          </div>
-          <p className="text-sm text-white/70">@{profile?.username || "user"}</p>
-          {isPro && (
-            <span className="mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-yellow-400/20 text-yellow-300 border border-yellow-400/30">
-              PRO
-            </span>
-          )}
-          <p className="text-xs text-white/50 mt-1">
-            {status === "online" ? "в сети" : "был(а) недавно"}
-          </p>
+          <Avatar className="h-24 w-24">
+            {profile?.avatar_url ? <AvatarImage src={profile.avatar_url} alt={displayName} /> : null}
+            <AvatarFallback className="bg-primary/20 text-primary text-3xl font-bold">
+              {displayName[0]}
+            </AvatarFallback>
+          </Avatar>
+          <p className="text-xl font-bold mt-3">{displayName}</p>
+          <p className="text-sm text-muted-foreground">@{profile?.username || "user"}</p>
+          <p className="text-xs text-muted-foreground mt-1">в сети</p>
         </div>
-      </ProfileBanner>
+      </div>
 
       {/* Tabs */}
       <div className="px-4 mt-4">
@@ -197,8 +154,7 @@ export default function ContactProfilePage() {
               activeTab === "media" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
             }`}
           >
-            <Image className="h-4 w-4" />
-            Медиа ({photos.length})
+            <Image className="h-4 w-4" /> Медиа ({photos.length})
           </button>
           <button
             onClick={() => setActiveTab("voice")}
@@ -206,53 +162,30 @@ export default function ContactProfilePage() {
               activeTab === "voice" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
             }`}
           >
-            <Mic className="h-4 w-4" />
-            Голосовые ({voiceMessages.length})
+            <Mic className="h-4 w-4" /> Голосовые ({voiceMessages.length})
           </button>
         </div>
 
-        {/* Media Grid */}
         <AnimatePresence mode="wait">
           {activeTab === "media" && (
-            <motion.div
-              key="media"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="mt-4 grid grid-cols-3 gap-1 rounded-xl overflow-hidden"
-            >
+            <motion.div key="media" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="mt-4 grid grid-cols-3 gap-1 rounded-xl overflow-hidden">
               {photos.length === 0 ? (
-                <div className="col-span-3 py-12 text-center text-sm text-muted-foreground">
-                  Нет медиафайлов
-                </div>
+                <div className="col-span-3 py-12 text-center text-sm text-muted-foreground">Нет медиафайлов</div>
               ) : (
                 photos.map((p) => (
                   <a key={p.id} href={p.media_url} target="_blank" rel="noopener noreferrer">
-                    <motion.img
-                      whileHover={{ scale: 1.05 }}
-                      src={p.media_url}
-                      alt=""
-                      className="aspect-square w-full object-cover"
-                      loading="lazy"
-                    />
+                    <img src={p.media_url} alt="" className="aspect-square w-full object-cover" loading="lazy" />
                   </a>
                 ))
               )}
             </motion.div>
           )}
-
           {activeTab === "voice" && (
-            <motion.div
-              key="voice"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="mt-4 space-y-2"
-            >
+            <motion.div key="voice" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="mt-4 space-y-2">
               {voiceMessages.length === 0 ? (
-                <div className="py-12 text-center text-sm text-muted-foreground">
-                  Нет голосовых сообщений
-                </div>
+                <div className="py-12 text-center text-sm text-muted-foreground">Нет голосовых</div>
               ) : (
                 voiceMessages.map((v) => (
                   <div key={v.id} className="rounded-xl bg-card border border-border p-3 flex items-center gap-3">
@@ -260,14 +193,12 @@ export default function ContactProfilePage() {
                       <Mic className="h-4 w-4 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">Голосовое сообщение</p>
+                      <p className="text-sm font-medium">Голосовое сообщение</p>
                       <p className="text-xs text-muted-foreground">
                         {new Date(v.created_at).toLocaleDateString("ru", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                       </p>
                     </div>
-                    <a href={v.media_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-medium">
-                      Открыть
-                    </a>
+                    <a href={v.media_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-medium">Открыть</a>
                   </div>
                 ))
               )}
@@ -276,7 +207,6 @@ export default function ContactProfilePage() {
         </AnimatePresence>
       </div>
 
-      {/* Confirm Dialog */}
       <AlertDialog open={!!confirmAction} onOpenChange={(o) => !o && setConfirmAction(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
