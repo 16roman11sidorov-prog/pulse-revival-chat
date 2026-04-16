@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Paperclip, Smile, Mic, Send, Phone, Video, MoreVertical, X, FileText, Loader2, Square, Gift } from "lucide-react";
+import { ArrowLeft, Paperclip, Smile, Mic, Send, Phone, Video, MoreVertical, X, FileText, Loader2, Square } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,8 +8,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import VoicePlayer from "@/components/VoicePlayer";
-import { GiftSendDialog } from "@/components/easter/GiftSendDialog";
-import { isEasterEventActive } from "@/lib/easter-config";
 
 interface MessageItem {
   id: string;
@@ -52,7 +50,6 @@ export default function ChatDetailPage() {
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const [partnerId, setPartnerId] = useState<string | null>(null);
-  const [giftDialogOpen, setGiftDialogOpen] = useState(false);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -61,7 +58,6 @@ export default function ChatDetailPage() {
     loadMessages();
     loadPartnerInfo();
 
-    // Clean up existing channels first
     const existingMsg = supabase.getChannels().find(c => c.topic === `realtime:messages:${chatId}`);
     if (existingMsg) supabase.removeChannel(existingMsg);
     const existingTyping = supabase.getChannels().find(c => c.topic === `realtime:typing:${chatId}`);
@@ -124,7 +120,6 @@ export default function ChatDetailPage() {
   };
 
   const loadPartnerInfo = async () => {
-    // Load conversation info
     const { data: conv } = await supabase
       .from("conversations")
       .select("*")
@@ -135,7 +130,6 @@ export default function ChatDetailPage() {
       setConvType(conv.type);
       if (conv.type === "group" || conv.type === "channel") {
         setPartnerName(conv.name || (conv.type === "group" ? "Группа" : "Канал"));
-        // Check if user is admin
         const { data: membership } = await supabase
           .from("conversation_members")
           .select("role")
@@ -143,7 +137,6 @@ export default function ChatDetailPage() {
           .eq("user_id", user!.id)
           .single();
         setIsAdmin(membership?.role === "admin");
-        // Count members
         const { count } = await supabase
           .from("conversation_members")
           .select("*", { count: "exact", head: true })
@@ -210,7 +203,6 @@ export default function ChatDetailPage() {
     return path;
   };
 
-  // Voice recording
   const startRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -228,7 +220,7 @@ export default function ChatDetailPage() {
         if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
 
         const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        if (blob.size < 1000) { setIsRecording(false); return; } // too short
+        if (blob.size < 1000) { setIsRecording(false); return; }
 
         setIsUploading(true);
         try {
@@ -326,9 +318,7 @@ export default function ChatDetailPage() {
 
     return (
       <>
-        {isVoice && (
-          <VoicePlayer src={msg.media_url!} isOwn={msg.isOwn} />
-        )}
+        {isVoice && <VoicePlayer src={msg.media_url!} isOwn={msg.isOwn} />}
         {isImage && (
           <a href={msg.media_url!} target="_blank" rel="noopener noreferrer" className="block mb-1">
             <img src={msg.media_url!} alt={msg.file_name || "Фото"} className="max-w-full rounded-lg max-h-60 object-cover" loading="lazy" />
@@ -336,16 +326,16 @@ export default function ChatDetailPage() {
         )}
         {isFile && (
           <a href={msg.media_url!} target="_blank" rel="noopener noreferrer"
-            className={cn("flex items-center gap-2 mb-1 px-3 py-2 rounded-lg", msg.isOwn ? "bg-white/10" : "bg-black/5")}>
+            className={cn("flex items-center gap-2 mb-1 px-3 py-2 rounded-lg", msg.isOwn ? "bg-white/10" : "bg-black/5 dark:bg-white/5")}>
             <FileText className="h-5 w-5 shrink-0" />
             <span className="truncate text-xs font-medium">{msg.file_name || "Файл"}</span>
           </a>
         )}
         {!isVoice && msg.content && !(isImage && msg.content === "📷 Фото") && !(isFile && msg.content === `📎 ${msg.file_name}`) && (
-          <p>{msg.content}</p>
+          <p className="text-[15px] leading-relaxed">{msg.content}</p>
         )}
         {!isVoice && (
-          <p className={cn("mt-1 text-[10px]", msg.isOwn ? "text-white/60" : "text-muted-foreground")}>
+          <p className={cn("mt-0.5 text-[10px]", msg.isOwn ? "text-white/60" : "text-muted-foreground")}>
             {new Date(msg.created_at).toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" })}
           </p>
         )}
@@ -356,77 +346,70 @@ export default function ChatDetailPage() {
   return (
     <div className="flex h-screen flex-col bg-background">
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-border bg-card/80 px-3 py-3 backdrop-blur-xl">
-        <button onClick={() => navigate("/chats")} className="rounded-full p-1 hover:bg-muted">
+      <div className="flex items-center gap-2 border-b border-border bg-card/90 px-2 py-2 backdrop-blur-xl">
+        <button onClick={() => navigate("/chats")} className="flex items-center gap-1 text-primary px-1">
           <ArrowLeft className="h-5 w-5" />
+          <span className="text-sm font-medium">Назад</span>
         </button>
+        <div className="flex-1 flex items-center justify-center gap-2">
+          <button
+            onClick={() => convType === "direct" && partnerId && navigate(`/contact/${chatId}/${partnerId}`)}
+            disabled={convType !== "direct" || !partnerId}
+            className="flex flex-col items-center"
+          >
+            <p className="font-semibold text-sm">{partnerName}</p>
+            {isPartnerTyping ? (
+              <p className="text-[11px] text-primary font-medium">печатает...</p>
+            ) : (
+              <p className="text-[11px] text-muted-foreground">
+                {convType === "direct" ? (partnerStatus === "online" ? "в сети" : "был(а) недавно") : partnerStatus}
+              </p>
+            )}
+          </button>
+        </div>
         <button
           onClick={() => convType === "direct" && partnerId && navigate(`/contact/${chatId}/${partnerId}`)}
-          className="relative"
           disabled={convType !== "direct" || !partnerId}
         >
-          <Avatar className="h-9 w-9">
+          <Avatar className="h-8 w-8">
             {convType === "direct" && partnerAvatar ? (
               <AvatarImage src={partnerAvatar} alt={partnerName} />
             ) : null}
-            <AvatarFallback className="gradient-pulse text-white text-sm font-bold">
-              {convType === "group" ? <span className="text-xs">👥</span> : convType === "channel" ? <span className="text-xs">📢</span> : partnerName[0]}
+            <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
+              {partnerName[0]}
             </AvatarFallback>
           </Avatar>
-          {convType === "direct" && partnerStatus === "online" && (
-            <div className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-card bg-[hsl(var(--online))]" />
-          )}
         </button>
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm truncate">{partnerName}</p>
-          {isPartnerTyping ? (
-            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-primary font-medium">печатает...</motion.p>
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              {convType === "direct" ? (partnerStatus === "online" ? "в сети" : "был(а) недавно") : partnerStatus}
-            </p>
-          )}
-        </div>
-        <div className="flex gap-1">
-          {convType === "direct" && isEasterEventActive() && partnerId && (
-            <button onClick={() => setGiftDialogOpen(true)} className="rounded-full p-2 hover:bg-muted">
-              <Gift className="h-4 w-4 text-primary" />
-            </button>
-          )}
-          {convType === "direct" && (
-            <>
-              <button className="rounded-full p-2 hover:bg-muted"><Phone className="h-4 w-4 text-muted-foreground" /></button>
-              <button className="rounded-full p-2 hover:bg-muted"><Video className="h-4 w-4 text-muted-foreground" /></button>
-            </>
-          )}
-          <button className="rounded-full p-2 hover:bg-muted"><MoreVertical className="h-4 w-4 text-muted-foreground" /></button>
-          {partnerId && (
-            <GiftSendDialog
-              open={giftDialogOpen}
-              onOpenChange={setGiftDialogOpen}
-              receiverId={partnerId}
-              receiverName={partnerName}
-            />
-          )}
-        </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
-        {messages.map((msg, i) => (
-          <motion.div key={msg.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: Math.min(i * 0.03, 0.5) }}
-            className={cn("flex", msg.isOwn ? "justify-end" : "justify-start")}>
-            <div className={cn(
-              "max-w-[80%] rounded-2xl px-3.5 py-2 text-sm",
-              msg.isOwn
-                ? "bg-[hsl(var(--bubble-own))] text-[hsl(var(--bubble-own-foreground))] rounded-br-md"
-                : "bg-[hsl(var(--bubble-other))] text-[hsl(var(--bubble-other-foreground))] rounded-bl-md"
-            )}>
-              {renderMessageContent(msg)}
+      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5">
+        {messages.map((msg, i) => {
+          const showAvatar = !msg.isOwn && (i === 0 || messages[i - 1]?.sender_id !== msg.sender_id);
+          return (
+            <div key={msg.id} className={cn("flex", msg.isOwn ? "justify-end" : "justify-start")}>
+              {!msg.isOwn && (
+                <div className="w-8 mr-1.5 flex-shrink-0">
+                  {showAvatar && convType !== "direct" ? (
+                    <Avatar className="h-7 w-7">
+                      <AvatarFallback className="bg-muted text-muted-foreground text-[10px]">
+                        {msg.sender_id.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  ) : null}
+                </div>
+              )}
+              <div className={cn(
+                "max-w-[75%] px-3 py-2 text-sm",
+                msg.isOwn
+                  ? "bg-[hsl(var(--bubble-own))] text-[hsl(var(--bubble-own-foreground))] rounded-2xl rounded-br-md"
+                  : "bg-[hsl(var(--bubble-other))] text-[hsl(var(--bubble-other-foreground))] rounded-2xl rounded-bl-md"
+              )}>
+                {renderMessageContent(msg)}
+              </div>
             </div>
-          </motion.div>
-        ))}
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
 
@@ -455,17 +438,17 @@ export default function ChatDetailPage() {
         )}
       </AnimatePresence>
 
-      {/* Input - hide for channel non-admins */}
+      {/* Input */}
       {convType === "channel" && !isAdmin ? (
         <div className="border-t border-border bg-card/80 px-4 py-3 text-center">
           <p className="text-sm text-muted-foreground">Только администратор может публиковать</p>
         </div>
       ) : (
-      <div className="border-t border-border bg-card/80 px-3 py-2 backdrop-blur-xl">
+      <div className="border-t border-border bg-card/90 px-3 py-2 backdrop-blur-xl">
         <input ref={fileInputRef} type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar" className="hidden" onChange={handleFileSelect} />
 
         {isRecording ? (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3">
+          <div className="flex items-center gap-3">
             <button onClick={cancelRecording} className="rounded-full p-2 hover:bg-muted">
               <X className="h-5 w-5 text-destructive" />
             </button>
@@ -478,20 +461,18 @@ export default function ChatDetailPage() {
               <span className="text-sm font-medium text-destructive">
                 {formatDuration(recordingDuration)}
               </span>
-              <span className="text-xs text-muted-foreground">Запись...</span>
             </div>
-            <motion.button
-              whileTap={{ scale: 0.8 }}
+            <button
               onClick={stopRecording}
-              className="flex h-10 w-10 items-center justify-center rounded-full gradient-pulse"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-primary"
             >
               {isUploading ? (
-                <Loader2 className="h-4 w-4 text-white animate-spin" />
+                <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" />
               ) : (
-                <Send className="h-4 w-4 text-white" />
+                <Send className="h-4 w-4 text-primary-foreground" />
               )}
-            </motion.button>
-          </motion.div>
+            </button>
+          </div>
         ) : (
           <div className="flex items-center gap-2">
             <button onClick={() => fileInputRef.current?.click()} className="rounded-full p-2 hover:bg-muted">
@@ -500,26 +481,22 @@ export default function ChatDetailPage() {
             <div className="flex-1 relative">
               <input value={input} onChange={handleInputChange}
                 onKeyDown={(e) => e.key === "Enter" && !isUploading && handleSend()}
-                placeholder="Сообщение..."
+                placeholder="Сообщение"
                 className="w-full rounded-full bg-muted px-4 py-2.5 text-sm outline-none placeholder:text-muted-foreground" />
-              <button className="absolute right-3 top-1/2 -translate-y-1/2">
-                <Smile className="h-5 w-5 text-muted-foreground" />
-              </button>
             </div>
             {(input.trim() || selectedFile) ? (
-              <motion.button initial={{ scale: 0 }} animate={{ scale: 1 }} whileTap={{ scale: 0.8 }}
+              <button
                 onClick={handleSend} disabled={isUploading}
-                className="flex h-10 w-10 items-center justify-center rounded-full gradient-pulse disabled:opacity-50">
-                {isUploading ? <Loader2 className="h-4 w-4 text-white animate-spin" /> : <Send className="h-4 w-4 text-white" />}
-              </motion.button>
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-primary disabled:opacity-50 active:scale-90 transition-transform">
+                {isUploading ? <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" /> : <Send className="h-4 w-4 text-primary-foreground" />}
+              </button>
             ) : (
-              <motion.button
-                whileTap={{ scale: 0.8 }}
+              <button
                 onClick={startRecording}
-                className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-muted"
+                className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted"
               >
                 <Mic className="h-5 w-5 text-muted-foreground" />
-              </motion.button>
+              </button>
             )}
           </div>
         )}

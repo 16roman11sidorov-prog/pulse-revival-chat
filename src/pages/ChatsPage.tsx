@@ -3,13 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { Search, Edit, Plus, Users, Megaphone, Bot, MessageCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { AvatarFrame, type FrameType } from "@/components/AvatarFrame";
 
 interface ConversationItem {
   id: string;
@@ -18,11 +16,8 @@ interface ConversationItem {
   avatarUrl: string | null;
   lastMessage: string;
   time: string;
-  status: string;
   unread: number;
   type: string;
-  isPro: boolean;
-  avatarFrame: string | null;
 }
 
 interface BotItem {
@@ -35,17 +30,17 @@ interface BotItem {
 
 type Tab = "chats" | "groups" | "channels" | "bots";
 
-const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
-  { key: "chats", label: "Чаты", icon: <MessageCircle className="h-4 w-4" /> },
-  { key: "groups", label: "Группы", icon: <Users className="h-4 w-4" /> },
-  { key: "channels", label: "Каналы", icon: <Megaphone className="h-4 w-4" /> },
-  { key: "bots", label: "Боты", icon: <Bot className="h-4 w-4" /> },
+const tabs: { key: Tab; label: string }[] = [
+  { key: "chats", label: "Все" },
+  { key: "groups", label: "Группы" },
+  { key: "channels", label: "Каналы" },
+  { key: "bots", label: "Боты" },
 ];
 
 function ChatSkeleton() {
   return (
     <div className="flex items-center gap-3 px-4 py-3">
-      <Skeleton className="h-12 w-12 rounded-full shrink-0" />
+      <Skeleton className="h-14 w-14 rounded-full shrink-0" />
       <div className="flex-1 space-y-2">
         <div className="flex justify-between">
           <Skeleton className="h-4 w-28" />
@@ -71,7 +66,6 @@ export default function ChatsPage() {
     setLoading(true);
     Promise.all([loadConversations(), loadBots()]).then(() => setLoading(false));
 
-    // Subscribe to new messages for real-time chat list updates
     const existing = supabase.getChannels().find(c => c.topic === 'realtime:chats-realtime');
     if (existing) supabase.removeChannel(existing);
 
@@ -87,7 +81,6 @@ export default function ChatsPage() {
 
   const loadConversations = async () => {
     try {
-      // 1. Get all memberships in one query
       const { data: memberships } = await supabase
         .from("conversation_members")
         .select("conversation_id")
@@ -100,7 +93,6 @@ export default function ChatsPage() {
 
       const convIds = memberships.map((m) => m.conversation_id);
 
-      // 2. Fetch conversations + all members + last messages in parallel
       const [convsRes, allMembersRes, allMessagesRes] = await Promise.all([
         supabase.from("conversations").select("*").in("id", convIds),
         supabase.from("conversation_members").select("conversation_id, user_id").in("conversation_id", convIds),
@@ -111,7 +103,6 @@ export default function ChatsPage() {
       const allMembers = allMembersRes.data || [];
       const allMessages = allMessagesRes.data || [];
 
-      // Build last message map (first occurrence per conv since ordered desc)
       const lastMsgMap = new Map<string, { content: string; created_at: string }>();
       for (const msg of allMessages) {
         if (!lastMsgMap.has(msg.conversation_id)) {
@@ -119,9 +110,8 @@ export default function ChatsPage() {
         }
       }
 
-      // Find partner user IDs for direct chats
       const partnerUserIds = new Set<string>();
-      const partnerMap = new Map<string, string>(); // convId -> partnerId
+      const partnerMap = new Map<string, string>();
       for (const conv of convs) {
         if (conv.type === "direct") {
           const partner = allMembers.find(
@@ -134,25 +124,20 @@ export default function ChatsPage() {
         }
       }
 
-      // 3. Batch fetch all partner profiles
-      let profileMap = new Map<string, { display_name: string | null; username: string | null; avatar_url: string | null; is_pro: boolean; avatar_frame: string | null }>();
+      let profileMap = new Map<string, { display_name: string | null; username: string | null; avatar_url: string | null }>();
       if (partnerUserIds.size > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("user_id, display_name, username, avatar_url, is_pro, avatar_frame")
+          .select("user_id, display_name, username, avatar_url")
           .in("user_id", [...partnerUserIds]);
         for (const p of profiles || []) {
           profileMap.set(p.user_id, p as any);
         }
       }
 
-      // 4. Build items
       const items: ConversationItem[] = convs.map((conv) => {
         let name = conv.name || "Чат";
-        let status = "";
         let avatarUrl: string | null = null;
-        let isPro = false;
-        let avatarFrame: string | null = null;
 
         if (conv.type === "direct") {
           const partnerId = partnerMap.get(conv.id);
@@ -161,8 +146,6 @@ export default function ChatsPage() {
             if (profile) {
               name = profile.display_name || profile.username || "Пользователь";
               avatarUrl = profile.avatar_url || null;
-              isPro = !!(profile as any).is_pro;
-              avatarFrame = (profile as any).avatar_frame || null;
             }
           }
         }
@@ -175,15 +158,11 @@ export default function ChatsPage() {
           avatarUrl,
           lastMessage: lastMsg?.content || "Нет сообщений",
           time: lastMsg ? formatTime(lastMsg.created_at) : "",
-          status,
           unread: 0,
           type: conv.type,
-          isPro,
-          avatarFrame,
         };
       });
 
-      // Sort by last message time
       items.sort((a, b) => {
         if (!a.time && !b.time) return 0;
         if (!a.time) return 1;
@@ -227,205 +206,161 @@ export default function ChatsPage() {
     else if (tab === "bots") navigate("/botfather");
   };
 
-  const getConvIcon = (type: string) => {
-    if (type === "group") return <Users className="h-5 w-5" />;
-    if (type === "channel") return <Megaphone className="h-5 w-5" />;
-    return null;
-  };
-
   return (
     <div className="flex flex-col pb-20">
-      <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl px-4 pt-4 pb-2">
-        <div className="flex items-center justify-between mb-3">
-          <h1 className="text-2xl font-black">Pulse</h1>
-          <button className="rounded-full p-2 hover:bg-muted transition-colors">
-            <Edit className="h-5 w-5 text-muted-foreground" />
+      {/* Header */}
+      <div className="sticky top-0 z-40 bg-card/90 backdrop-blur-xl border-b border-border">
+        <div className="flex items-center justify-between px-4 pt-4 pb-2">
+          <button className="text-sm font-medium text-primary">Изм.</button>
+          <h1 className="text-lg font-bold">Pulse</h1>
+          <button onClick={() => navigate("/new-chat")} className="text-primary">
+            <Edit className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="flex gap-1 mb-3 rounded-xl bg-muted p-1">
+        {/* Tabs */}
+        <div className="flex px-3 gap-2 pb-2">
           {tabs.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
               className={cn(
-                "flex-1 flex items-center justify-center gap-1 rounded-lg py-1.5 text-xs font-medium transition-all relative",
+                "px-4 py-1.5 rounded-full text-sm font-semibold transition-all",
                 tab === t.key
-                  ? "text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground"
               )}
             >
-              {tab === t.key && (
-                <motion.div
-                  layoutId="chatTab"
-                  className="absolute inset-0 bg-background rounded-lg shadow-sm"
-                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
-                />
-              )}
-              <span className="relative z-10 flex items-center gap-1">
-                {t.icon}
-                {t.label}
-              </span>
+              {t.label}
             </button>
           ))}
         </div>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Поиск..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 rounded-xl bg-muted border-0"
-          />
+        {/* Search */}
+        <div className="px-4 pb-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Поиск"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10 rounded-xl bg-muted border-0 h-9 text-sm"
+            />
+          </div>
         </div>
       </div>
 
+      {/* Content */}
       <AnimatePresence mode="wait">
         {loading ? (
-          <motion.div
-            key="skeleton"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col"
-          >
-            {[...Array(6)].map((_, i) => (
-              <ChatSkeleton key={i} />
-            ))}
-          </motion.div>
+          <div className="flex flex-col">
+            {[...Array(6)].map((_, i) => <ChatSkeleton key={i} />)}
+          </div>
         ) : tab === "bots" ? (
           <motion.div
             key="bots"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             className="flex flex-col"
           >
-            <motion.button
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
+            <button
               onClick={() => navigate("/botfather")}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-left active:scale-[0.98]"
+              className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-left active:scale-[0.99]"
             >
-              <Avatar className="h-12 w-12">
-                <AvatarFallback className="bg-blue-500 text-white font-bold">
+              <Avatar className="h-14 w-14">
+                <AvatarFallback className="bg-primary text-primary-foreground font-bold text-lg">
                   <Bot className="h-6 w-6" />
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">BotFather</span>
-                  <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
-                    официальный
-                  </span>
-                </div>
+                <span className="font-semibold">BotFather</span>
                 <p className="text-sm text-muted-foreground">Создайте своего бота</p>
               </div>
-            </motion.button>
+              <span className="text-muted-foreground text-lg">›</span>
+            </button>
 
-            {filteredBots.map((bot, i) => (
-              <motion.button
+            {filteredBots.map((bot) => (
+              <button
                 key={bot.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: (i + 1) * 0.04 }}
                 onClick={() => navigate(`/bot/${bot.id}`)}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-left active:scale-[0.98]"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-left active:scale-[0.99]"
               >
-                <Avatar className="h-12 w-12">
-                  <AvatarFallback className="bg-blue-500/80 text-white font-bold">
+                <Avatar className="h-14 w-14">
+                  <AvatarFallback className="bg-primary/80 text-primary-foreground font-bold">
                     <Bot className="h-5 w-5" />
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <span className="font-semibold">{bot.name}</span>
-                  <p className="text-sm text-muted-foreground truncate">
-                    @{bot.username} · {bot.description || "Бот"}
-                  </p>
+                  <p className="text-sm text-muted-foreground truncate">@{bot.username}</p>
                 </div>
-              </motion.button>
+                <span className="text-muted-foreground text-lg">›</span>
+              </button>
             ))}
           </motion.div>
         ) : filteredConvs.length === 0 ? (
-          <motion.div
-            key="empty"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center justify-center py-20 px-4 text-center"
-          >
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
             <p className="text-muted-foreground text-sm">
               {tab === "chats" && "Пока нет чатов"}
               {tab === "groups" && "Пока нет групп"}
               {tab === "channels" && "Пока нет каналов"}
             </p>
             <p className="text-xs text-muted-foreground mt-1">Нажмите + чтобы создать</p>
-          </motion.div>
+          </div>
         ) : (
           <motion.div
             key={tab}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             className="flex flex-col"
           >
-            {filteredConvs.map((chat, i) => (
-              <motion.button
+            {filteredConvs.map((chat) => (
+              <button
                 key={chat.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.03 }}
                 onClick={() => navigate(`/chat/${chat.id}`)}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-left active:scale-[0.98]"
+                className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors text-left active:scale-[0.99]"
               >
-                <div className="relative">
-                  <AvatarFrame frame={chat.type === "direct" ? (chat.avatarFrame as FrameType) : null} glow={chat.isPro}>
-                    <Avatar className="h-12 w-12">
-                      {chat.type === "direct" && chat.avatarUrl ? (
-                        <AvatarImage src={chat.avatarUrl} alt={chat.name} />
-                      ) : null}
-                      <AvatarFallback className="gradient-pulse text-white font-bold">
-                        {getConvIcon(chat.type) || chat.avatar}
-                      </AvatarFallback>
-                    </Avatar>
-                  </AvatarFrame>
-                  {chat.type === "direct" && chat.status === "online" && (
-                    <div className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-background bg-[hsl(var(--online))]" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
+                <Avatar className="h-14 w-14">
+                  {chat.type === "direct" && chat.avatarUrl ? (
+                    <AvatarImage src={chat.avatarUrl} alt={chat.name} />
+                  ) : null}
+                  <AvatarFallback className={cn(
+                    "font-bold text-lg",
+                    chat.type === "direct" ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+                  )}>
+                    {chat.type === "group" ? <Users className="h-6 w-6" /> : chat.type === "channel" ? <Megaphone className="h-6 w-6" /> : chat.avatar}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0 border-b border-border py-2">
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold truncate flex items-center gap-1">
-                      {chat.name}
-                      {chat.isPro && <span className="text-xs">👑</span>}
-                    </span>
-                    <span className="text-xs text-muted-foreground">{chat.time}</span>
+                    <span className="font-semibold truncate">{chat.name}</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-muted-foreground">{chat.time}</span>
+                      <span className="text-muted-foreground text-lg">›</span>
+                    </div>
                   </div>
                   <div className="flex items-center justify-between mt-0.5">
                     <p className="text-sm text-muted-foreground truncate pr-2">{chat.lastMessage}</p>
                     {chat.unread > 0 && (
-                      <Badge className="h-5 min-w-5 px-1.5 text-[10px] gradient-pulse text-white border-0 flex items-center justify-center">
+                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
                         {chat.unread}
-                      </Badge>
+                      </span>
                     )}
                   </div>
                 </div>
-              </motion.button>
+              </button>
             ))}
           </motion.div>
         )}
       </AnimatePresence>
 
-      <motion.button
-        whileTap={{ scale: 0.9 }}
-        className="fixed bottom-24 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full gradient-pulse shadow-lg shadow-primary/30"
+      {/* FAB */}
+      <button
+        className="fixed bottom-24 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary shadow-lg shadow-primary/30 active:scale-90 transition-transform"
         onClick={handleFabClick}
       >
-        <Plus className="h-6 w-6 text-white" />
-      </motion.button>
+        <Plus className="h-6 w-6 text-primary-foreground" />
+      </button>
     </div>
   );
 }

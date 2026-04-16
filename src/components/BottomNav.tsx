@@ -1,7 +1,6 @@
 import { MessageCircle, Newspaper, Bot, User } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
 
 const tabs = [
   { path: "/chats", icon: MessageCircle, label: "Чаты" },
@@ -14,12 +13,11 @@ export function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Hide on chat detail pages and auth
   const hiddenPaths = ["/chat/", "/auth", "/new-chat", "/support", "/create-group", "/create-channel", "/botfather", "/bot/", "/settings"];
   if (hiddenPaths.some((p) => location.pathname === p || location.pathname.startsWith(p + "/") || (p.endsWith("/") && location.pathname.startsWith(p)))) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/80 backdrop-blur-xl">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/90 backdrop-blur-xl">
       <div className="flex items-center justify-around py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]">
         {tabs.map((tab) => {
           const isActive = location.pathname === tab.path || (tab.path === "/chats" && location.pathname === "/");
@@ -28,18 +26,11 @@ export function BottomNav() {
               key={tab.path}
               onClick={() => navigate(tab.path)}
               className={cn(
-                "relative flex flex-col items-center gap-0.5 px-4 py-1.5 text-xs transition-colors",
+                "flex flex-col items-center gap-0.5 px-4 py-1.5 text-xs transition-colors",
                 isActive ? "text-primary" : "text-muted-foreground"
               )}
             >
-              {isActive && (
-                <motion.div
-                  layoutId="activeTab"
-                  className="absolute -top-1.5 h-0.5 w-8 rounded-full gradient-pulse"
-                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                />
-              )}
-              <tab.icon className="h-5 w-5" />
+              <tab.icon className={cn("h-5 w-5", isActive && "fill-primary stroke-primary")} />
               <span className="font-medium">{tab.label}</span>
             </button>
           );
