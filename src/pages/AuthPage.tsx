@@ -18,7 +18,6 @@ export default function AuthPage() {
   const { signIn, signUp, user } = useAuth();
   const { toast } = useToast();
 
-  // Redirect if already logged in
   if (user) {
     return <Navigate to="/chats" replace />;
   }
@@ -49,7 +48,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-6 gradient-pulse">
+    <div className="flex min-h-screen flex-col items-center justify-center px-6 bg-primary">
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -72,7 +71,6 @@ export default function AuthPage() {
 
         {/* Form Card */}
         <div className="rounded-2xl bg-card/95 p-6 shadow-2xl backdrop-blur-md">
-          {/* Tabs */}
           <div className="mb-6 flex rounded-xl bg-muted p-1">
             {["Вход", "Регистрация"].map((tab, i) => (
               <button
@@ -85,7 +83,7 @@ export default function AuthPage() {
                 {(i === 0 ? isLogin : !isLogin) && (
                   <motion.div
                     layoutId="authTab"
-                    className="absolute inset-0 rounded-lg gradient-pulse"
+                    className="absolute inset-0 rounded-lg bg-primary"
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
                 )}
@@ -107,58 +105,31 @@ export default function AuthPage() {
               {!isLogin && (
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Имя"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="pl-10"
-                    required={!isLogin}
-                  />
+                  <Input placeholder="Имя" value={name} onChange={(e) => setName(e.target.value)} className="pl-10" required={!isLogin} />
                 </div>
               )}
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
-                  required
-                />
+                <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10" required />
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  type="password"
-                  placeholder="Пароль"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
-                  required
-                  minLength={6}
-                />
+                <Input type="password" placeholder="Пароль" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10" required minLength={6} />
               </div>
 
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full gradient-pulse text-white border-0 hover:opacity-90"
-              >
+              <Button type="submit" disabled={isLoading} className="w-full bg-primary text-primary-foreground border-0 hover:opacity-90">
                 {isLoading ? "Загрузка..." : isLogin ? "Войти" : "Создать аккаунт"}
                 {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
               </Button>
             </motion.form>
           </AnimatePresence>
 
-          {/* Divider */}
           <div className="my-5 flex items-center gap-3">
             <div className="h-px flex-1 bg-border" />
             <span className="text-xs text-muted-foreground">или</span>
             <div className="h-px flex-1 bg-border" />
           </div>
 
-          {/* Google */}
           <Button
             variant="outline"
             className="w-full gap-2"
