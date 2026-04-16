@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Camera, User, Mail, Lock, AtSign, Eye, EyeOff, Check, Loader2, Bell, Crown } from "lucide-react";
+import { ArrowLeft, Camera, User, Mail, Lock, AtSign, Eye, EyeOff, Check, Loader2, Bell, Palette } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -52,30 +52,23 @@ export default function AccountSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [section, setSection] = useState<Section>("main");
 
-  // Form fields
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
-  // Password fields
-  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  // Email field
   const [newEmail, setNewEmail] = useState("");
 
-  // Privacy
   const [whoCanMessage, setWhoCanMessage] = useState("everyone");
   const [whoCanAddToGroups, setWhoCanAddToGroups] = useState("everyone");
   const [whoCanSeeProfile, setWhoCanSeeProfile] = useState("everyone");
   const [whoCanSeeLastSeen, setWhoCanSeeLastSeen] = useState("everyone");
   const [whoCanSeeAvatar, setWhoCanSeeAvatar] = useState("everyone");
 
-  // Pro
-  const [isPro, setIsPro] = useState(false);
   const [avatarFrame, setAvatarFrame] = useState<FrameType>(null);
 
   useEffect(() => {
@@ -86,7 +79,7 @@ export default function AccountSettingsPage() {
   const loadProfile = async () => {
     const { data } = await supabase
       .from("profiles")
-      .select("display_name, username, bio, avatar_url, who_can_message, who_can_add_to_groups, who_can_see_profile, who_can_see_last_seen, who_can_see_avatar, is_pro, avatar_frame")
+      .select("display_name, username, bio, avatar_url, who_can_message, who_can_add_to_groups, who_can_see_profile, who_can_see_last_seen, who_can_see_avatar, avatar_frame")
       .eq("user_id", user!.id)
       .single();
 
@@ -101,7 +94,6 @@ export default function AccountSettingsPage() {
       setWhoCanSeeProfile(data.who_can_see_profile);
       setWhoCanSeeLastSeen(data.who_can_see_last_seen);
       setWhoCanSeeAvatar((data as any).who_can_see_avatar || "everyone");
-      setIsPro(!!(data as any).is_pro);
       setAvatarFrame(((data as any).avatar_frame as FrameType) || null);
     }
     setLoading(false);
@@ -110,10 +102,7 @@ export default function AccountSettingsPage() {
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Файл слишком большой (макс. 5 МБ)");
-      return;
-    }
+    if (file.size > 5 * 1024 * 1024) { toast.error("Файл слишком большой (макс. 5 МБ)"); return; }
 
     const ext = file.name.split(".").pop() || "jpg";
     const path = `${user!.id}/avatar.${ext}`;
@@ -123,11 +112,7 @@ export default function AccountSettingsPage() {
       .from("chat-attachments")
       .upload(path, file, { upsert: true, contentType: file.type });
 
-    if (uploadErr) {
-      toast.error("Ошибка загрузки аватара");
-      setSaving(false);
-      return;
-    }
+    if (uploadErr) { toast.error("Ошибка загрузки аватара"); setSaving(false); return; }
 
     const { data: urlData } = supabase.storage.from("chat-attachments").getPublicUrl(path);
     const url = urlData.publicUrl + "?t=" + Date.now();
@@ -139,18 +124,9 @@ export default function AccountSettingsPage() {
   };
 
   const saveProfile = async () => {
-    if (!displayName.trim()) {
-      toast.error("Имя не может быть пустым");
-      return;
-    }
-    if (!username.trim()) {
-      toast.error("Юзернейм не может быть пустым");
-      return;
-    }
-    if (!/^[a-zA-Z0-9_]{3,30}$/.test(username)) {
-      toast.error("Юзернейм: 3-30 символов, только латиница, цифры и _");
-      return;
-    }
+    if (!displayName.trim()) { toast.error("Имя не может быть пустым"); return; }
+    if (!username.trim()) { toast.error("Юзернейм не может быть пустым"); return; }
+    if (!/^[a-zA-Z0-9_]{3,30}$/.test(username)) { toast.error("Юзернейм: 3-30 символов, только латиница, цифры и _"); return; }
 
     setSaving(true);
     const { error } = await supabase
@@ -167,44 +143,23 @@ export default function AccountSettingsPage() {
   };
 
   const changePassword = async () => {
-    if (newPassword.length < 6) {
-      toast.error("Пароль должен быть не менее 6 символов");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast.error("Пароли не совпадают");
-      return;
-    }
+    if (newPassword.length < 6) { toast.error("Пароль должен быть не менее 6 символов"); return; }
+    if (newPassword !== confirmPassword) { toast.error("Пароли не совпадают"); return; }
 
     setSaving(true);
     const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Пароль изменён");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      setSection("main");
-    }
+    if (error) { toast.error(error.message); }
+    else { toast.success("Пароль изменён"); setNewPassword(""); setConfirmPassword(""); setSection("main"); }
     setSaving(false);
   };
 
   const changeEmail = async () => {
-    if (!newEmail.trim() || !newEmail.includes("@")) {
-      toast.error("Введите корректный email");
-      return;
-    }
+    if (!newEmail.trim() || !newEmail.includes("@")) { toast.error("Введите корректный email"); return; }
 
     setSaving(true);
     const { error } = await supabase.auth.updateUser({ email: newEmail.trim() });
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Письмо подтверждения отправлено на новый адрес");
-      setNewEmail("");
-      setSection("main");
-    }
+    if (error) { toast.error(error.message); }
+    else { toast.success("Письмо подтверждения отправлено"); setNewEmail(""); setSection("main"); }
     setSaving(false);
   };
 
@@ -221,11 +176,8 @@ export default function AccountSettingsPage() {
       } as any)
       .eq("user_id", user!.id);
 
-    if (error) {
-      toast.error("Ошибка сохранения");
-    } else {
-      toast.success("Настройки конфиденциальности обновлены");
-    }
+    if (error) { toast.error("Ошибка сохранения"); }
+    else { toast.success("Настройки обновлены"); }
     setSaving(false);
   };
 
@@ -239,8 +191,7 @@ export default function AccountSettingsPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      {/* Header */}
-      <div className="sticky top-0 z-40 flex items-center gap-3 border-b border-border bg-card/80 px-4 py-3 backdrop-blur-xl">
+      <div className="sticky top-0 z-40 flex items-center gap-3 border-b border-border bg-card/90 px-4 py-3 backdrop-blur-xl">
         <button
           onClick={() => (section === "main" ? navigate("/profile") : setSection("main"))}
           className="rounded-full p-1 hover:bg-muted transition-colors"
@@ -248,7 +199,7 @@ export default function AccountSettingsPage() {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <h1 className="text-lg font-bold">
-          {section === "main" && "Настройки аккаунта"}
+          {section === "main" && "Настройки"}
           {section === "password" && "Изменить пароль"}
           {section === "email" && "Изменить почту"}
           {section === "privacy" && "Конфиденциальность"}
@@ -258,148 +209,78 @@ export default function AccountSettingsPage() {
 
       <AnimatePresence mode="wait">
         {section === "main" && (
-          <motion.div
-            key="main"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="flex-1 px-4 py-6 pb-20 space-y-6"
-          >
-            {/* Avatar */}
+          <motion.div key="main" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="flex-1 px-4 py-6 pb-20 space-y-6">
             <div className="flex flex-col items-center gap-3">
               <div className="relative">
-                <Avatar className="h-24 w-24 border-4 border-primary/20">
-                  {avatarUrl ? (
-                    <AvatarImage src={avatarUrl} alt="Avatar" />
-                  ) : null}
-                  <AvatarFallback className="gradient-pulse text-white text-3xl font-black">
+                <Avatar className="h-24 w-24">
+                  {avatarUrl ? <AvatarImage src={avatarUrl} alt="Avatar" /> : null}
+                  <AvatarFallback className="bg-primary/20 text-primary text-3xl font-bold">
                     {displayName?.[0] || "?"}
                   </AvatarFallback>
                 </Avatar>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg"
-                >
+                <button onClick={() => fileInputRef.current?.click()}
+                  className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg">
                   <Camera className="h-4 w-4" />
                 </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAvatarUpload}
-                />
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
               </div>
-              <p className="text-xs text-muted-foreground">Нажмите на камеру чтобы изменить фото</p>
             </div>
 
-            {/* Name */}
             <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground" />
-                Имя
-              </label>
-              <Input
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Ваше имя"
-                className="rounded-xl"
-              />
+              <label className="text-sm font-medium flex items-center gap-2"><User className="h-4 w-4 text-muted-foreground" /> Имя</label>
+              <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Ваше имя" className="rounded-xl" />
             </div>
 
-            {/* Username */}
             <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <AtSign className="h-4 w-4 text-muted-foreground" />
-                Юзернейм
-              </label>
-              <Input
-                value={username}
-                onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
-                placeholder="your_username"
-                className="rounded-xl"
-              />
-              <p className="text-xs text-muted-foreground">3-30 символов. Латиница, цифры и _</p>
+              <label className="text-sm font-medium flex items-center gap-2"><AtSign className="h-4 w-4 text-muted-foreground" /> Юзернейм</label>
+              <Input value={username} onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))} placeholder="your_username" className="rounded-xl" />
             </div>
 
-            {/* Bio */}
             <div className="space-y-2">
               <label className="text-sm font-medium">О себе</label>
-              <Input
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                placeholder="Расскажите о себе..."
-                className="rounded-xl"
-                maxLength={150}
-              />
+              <Input value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Расскажите о себе..." className="rounded-xl" maxLength={150} />
               <p className="text-xs text-muted-foreground text-right">{bio.length}/150</p>
             </div>
 
-            <Button
-              onClick={saveProfile}
-              disabled={saving}
-              className="w-full rounded-xl gradient-pulse text-white border-0"
-            >
+            <Button onClick={saveProfile} disabled={saving} className="w-full rounded-xl">
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
-              Сохранить профиль
+              Сохранить
             </Button>
 
-            {/* Menu items */}
             <div className="rounded-2xl bg-card border border-border overflow-hidden">
-              <button
-                onClick={() => setSection("email")}
-                className="flex w-full items-center gap-3 px-4 py-3.5 border-b border-border hover:bg-muted/50 transition-colors"
-              >
+              <button onClick={() => setSection("frame")} className="flex w-full items-center gap-3 px-4 py-3.5 border-b border-border hover:bg-muted/50 transition-colors">
+                <Palette className="h-5 w-5 text-muted-foreground" />
+                <div className="flex-1 text-left">
+                  <p className="text-sm font-medium">Рамка аватарки</p>
+                  <p className="text-xs text-muted-foreground">{avatarFrame ? FRAME_OPTIONS.find(f => f.value === avatarFrame)?.label || "Выбрана" : "Не выбрана"}</p>
+                </div>
+              </button>
+              <button onClick={() => setSection("email")} className="flex w-full items-center gap-3 px-4 py-3.5 border-b border-border hover:bg-muted/50 transition-colors">
                 <Mail className="h-5 w-5 text-muted-foreground" />
                 <div className="flex-1 text-left">
                   <p className="text-sm font-medium">Изменить почту</p>
                   <p className="text-xs text-muted-foreground">{user?.email}</p>
                 </div>
               </button>
-              <button
-                onClick={() => setSection("password")}
-                className="flex w-full items-center gap-3 px-4 py-3.5 border-b border-border hover:bg-muted/50 transition-colors"
-              >
+              <button onClick={() => setSection("password")} className="flex w-full items-center gap-3 px-4 py-3.5 border-b border-border hover:bg-muted/50 transition-colors">
                 <Lock className="h-5 w-5 text-muted-foreground" />
-                <div className="flex-1 text-left">
-                  <p className="text-sm font-medium">Изменить пароль</p>
-                </div>
+                <p className="text-sm font-medium text-left">Изменить пароль</p>
               </button>
-              <button
-                onClick={() => setSection("privacy")}
-                className="flex w-full items-center gap-3 px-4 py-3.5 border-b border-border hover:bg-muted/50 transition-colors"
-              >
+              <button onClick={() => setSection("privacy")} className="flex w-full items-center gap-3 px-4 py-3.5 border-b border-border hover:bg-muted/50 transition-colors">
                 <Eye className="h-5 w-5 text-muted-foreground" />
                 <div className="flex-1 text-left">
                   <p className="text-sm font-medium">Конфиденциальность</p>
-                  <p className="text-xs text-muted-foreground">Кто может писать, видеть профиль...</p>
                 </div>
               </button>
-              {isPro && (
-                <button
-                  onClick={() => setSection("frame")}
-                  className="flex w-full items-center gap-3 px-4 py-3.5 border-b border-border hover:bg-muted/50 transition-colors bg-yellow-500/5"
-                >
-                  <Crown className="h-5 w-5 text-yellow-500" />
-                  <div className="flex-1 text-left">
-                    <p className="text-sm font-medium text-yellow-500">Рамка аватарки</p>
-                    <p className="text-xs text-muted-foreground">{avatarFrame ? FRAME_OPTIONS.find(f => f.value === avatarFrame)?.label || "Выбрана" : "Не выбрана"}</p>
-                  </div>
-                </button>
-              )}
               <button
                 onClick={async () => {
-                  if (permission === "granted") {
-                    toast.info("Уведомления уже включены");
-                  } else if (permission === "denied") {
-                    toast.error("Уведомления заблокированы в настройках браузера");
-                  } else {
+                  if (permission === "granted") { toast.info("Уведомления уже включены"); }
+                  else if (permission === "denied") { toast.error("Заблокированы в настройках браузера"); }
+                  else {
                     const result = await requestPermission();
-                    if (result === "granted") {
-                      toast.success("Уведомления включены!");
-                    } else {
-                      toast.error("Не удалось включить уведомления");
-                    }
+                    if (result === "granted") toast.success("Уведомления включены!");
+                    else toast.error("Не удалось включить");
                   }
                 }}
                 className="flex w-full items-center gap-3 px-4 py-3.5 hover:bg-muted/50 transition-colors"
@@ -408,7 +289,7 @@ export default function AccountSettingsPage() {
                 <div className="flex-1 text-left">
                   <p className="text-sm font-medium">Уведомления</p>
                   <p className="text-xs text-muted-foreground">
-                    {permission === "granted" ? "Включены ✓" : permission === "denied" ? "Заблокированы браузером" : "Нажмите, чтобы включить"}
+                    {permission === "granted" ? "Включены ✓" : permission === "denied" ? "Заблокированы" : "Нажмите, чтобы включить"}
                   </p>
                 </div>
               </button>
@@ -417,48 +298,22 @@ export default function AccountSettingsPage() {
         )}
 
         {section === "password" && (
-          <motion.div
-            key="password"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="flex-1 px-4 py-6 space-y-4"
-          >
+          <motion.div key="password" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+            className="flex-1 px-4 py-6 space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Новый пароль</label>
               <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Не менее 6 символов"
-                  className="rounded-xl pr-10"
-                />
-                <button
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2"
-                >
+                <Input type={showPassword ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Не менее 6 символов" className="rounded-xl pr-10" />
+                <button onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2">
                   {showPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
                 </button>
               </div>
             </div>
-
             <div className="space-y-2">
               <label className="text-sm font-medium">Подтвердите пароль</label>
-              <Input
-                type={showPassword ? "text" : "password"}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Повторите пароль"
-                className="rounded-xl"
-              />
+              <Input type={showPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Повторите пароль" className="rounded-xl" />
             </div>
-
-            <Button
-              onClick={changePassword}
-              disabled={saving || !newPassword || !confirmPassword}
-              className="w-full rounded-xl gradient-pulse text-white border-0"
-            >
+            <Button onClick={changePassword} disabled={saving || !newPassword || !confirmPassword} className="w-full rounded-xl">
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Изменить пароль
             </Button>
@@ -466,35 +321,17 @@ export default function AccountSettingsPage() {
         )}
 
         {section === "email" && (
-          <motion.div
-            key="email"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="flex-1 px-4 py-6 space-y-4"
-          >
+          <motion.div key="email" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+            className="flex-1 px-4 py-6 space-y-4">
             <div className="rounded-xl bg-muted p-3">
               <p className="text-xs text-muted-foreground">Текущая почта</p>
               <p className="text-sm font-medium mt-0.5">{user?.email}</p>
             </div>
-
             <div className="space-y-2">
               <label className="text-sm font-medium">Новая почта</label>
-              <Input
-                type="email"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                placeholder="new@example.com"
-                className="rounded-xl"
-              />
-              <p className="text-xs text-muted-foreground">Письмо подтверждения будет отправлено на новый адрес</p>
+              <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="new@example.com" className="rounded-xl" />
             </div>
-
-            <Button
-              onClick={changeEmail}
-              disabled={saving || !newEmail}
-              className="w-full rounded-xl gradient-pulse text-white border-0"
-            >
+            <Button onClick={changeEmail} disabled={saving || !newEmail} className="w-full rounded-xl">
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Изменить почту
             </Button>
@@ -502,70 +339,30 @@ export default function AccountSettingsPage() {
         )}
 
         {section === "privacy" && (
-          <motion.div
-            key="privacy"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="flex-1 px-4 py-6 space-y-5"
-          >
-            <PrivacySetting
-              label="Кто может мне писать"
-              description="Личные сообщения"
-              value={whoCanMessage}
-              onChange={setWhoCanMessage}
-            />
-            <PrivacySetting
-              label="Кто может добавлять в группы"
-              description="Приглашения в группы и каналы"
-              value={whoCanAddToGroups}
-              onChange={setWhoCanAddToGroups}
-            />
-            <PrivacySetting
-              label="Кто видит мой профиль"
-              description="Фото, био и контакты"
-              value={whoCanSeeProfile}
-              onChange={setWhoCanSeeProfile}
-            />
-            <PrivacySetting
-              label="Кто видит «был(а) в сети»"
-              description="Время последнего визита"
-              value={whoCanSeeLastSeen}
-              onChange={setWhoCanSeeLastSeen}
-            />
-            <PrivacySetting
-              label="Кто видит мою аватарку"
-              description="Фото профиля"
-              value={whoCanSeeAvatar}
-              onChange={setWhoCanSeeAvatar}
-            />
-
-            <Button
-              onClick={savePrivacy}
-              disabled={saving}
-              className="w-full rounded-xl gradient-pulse text-white border-0"
-            >
+          <motion.div key="privacy" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+            className="flex-1 px-4 py-6 space-y-5">
+            <PrivacySetting label="Кто может мне писать" description="Личные сообщения" value={whoCanMessage} onChange={setWhoCanMessage} />
+            <PrivacySetting label="Кто может добавлять в группы" description="Приглашения" value={whoCanAddToGroups} onChange={setWhoCanAddToGroups} />
+            <PrivacySetting label="Кто видит мой профиль" description="Фото, био и контакты" value={whoCanSeeProfile} onChange={setWhoCanSeeProfile} />
+            <PrivacySetting label="Кто видит «был(а) в сети»" description="Время последнего визита" value={whoCanSeeLastSeen} onChange={setWhoCanSeeLastSeen} />
+            <PrivacySetting label="Кто видит мою аватарку" description="Фото профиля" value={whoCanSeeAvatar} onChange={setWhoCanSeeAvatar} />
+            <Button onClick={savePrivacy} disabled={saving} className="w-full rounded-xl">
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
-              Сохранить настройки
+              Сохранить
             </Button>
           </motion.div>
         )}
 
-        {section === "frame" && isPro && (
-          <motion.div
-            key="frame"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="flex-1 px-4 py-6 space-y-4"
-          >
-            <p className="text-sm text-muted-foreground">Выберите рамку для вашей аватарки. Она будет видна всем пользователям.</p>
+        {section === "frame" && (
+          <motion.div key="frame" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+            className="flex-1 px-4 py-6 space-y-4">
+            <p className="text-sm text-muted-foreground">Выберите рамку для вашей аватарки.</p>
 
             <div className="flex justify-center mb-4">
               <AvatarFrame frame={avatarFrame} glow>
                 <Avatar className="h-24 w-24">
                   {avatarUrl ? <AvatarImage src={avatarUrl} alt="Avatar" /> : null}
-                  <AvatarFallback className="gradient-pulse text-white text-3xl font-black">
+                  <AvatarFallback className="bg-primary/20 text-primary text-3xl font-bold">
                     {displayName?.[0] || "?"}
                   </AvatarFallback>
                 </Avatar>
@@ -579,9 +376,7 @@ export default function AccountSettingsPage() {
                   onClick={() => setAvatarFrame(opt.value)}
                   className={cn(
                     "flex items-center gap-3 rounded-xl border p-3 transition-all",
-                    avatarFrame === opt.value
-                      ? "border-primary bg-primary/10"
-                      : "border-border hover:border-primary/50"
+                    avatarFrame === opt.value ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
                   )}
                 >
                   <span className="text-xl">{opt.emoji}</span>
@@ -594,15 +389,12 @@ export default function AccountSettingsPage() {
             <Button
               onClick={async () => {
                 setSaving(true);
-                await supabase
-                  .from("profiles")
-                  .update({ avatar_frame: avatarFrame } as any)
-                  .eq("user_id", user!.id);
+                await supabase.from("profiles").update({ avatar_frame: avatarFrame } as any).eq("user_id", user!.id);
                 toast.success("Рамка сохранена");
                 setSaving(false);
               }}
               disabled={saving}
-              className="w-full rounded-xl gradient-pulse text-white border-0"
+              className="w-full rounded-xl"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
               Сохранить рамку
@@ -614,17 +406,7 @@ export default function AccountSettingsPage() {
   );
 }
 
-function PrivacySetting({
-  label,
-  description,
-  value,
-  onChange,
-}: {
-  label: string;
-  description: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
+function PrivacySetting({ label, description, value, onChange }: { label: string; description: string; value: string; onChange: (v: string) => void }) {
   return (
     <div className="space-y-2">
       <div>
@@ -638,9 +420,7 @@ function PrivacySetting({
             onClick={() => onChange(opt.value)}
             className={cn(
               "flex-1 rounded-xl py-2 text-xs font-medium transition-all",
-              value === opt.value
-                ? "gradient-pulse text-white shadow-sm"
-                : "bg-muted text-muted-foreground hover:text-foreground"
+              value === opt.value ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
             )}
           >
             {opt.label}
